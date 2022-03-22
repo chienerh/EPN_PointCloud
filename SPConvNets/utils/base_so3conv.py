@@ -612,6 +612,49 @@ class InvOutBlockMVD(nn.Module):
 
         return F.normalize(x_out, p=2, dim=1), attn
 
+class InvOutBlockMVD_nomax(nn.Module):
+    def __init__(self, params, norm=None):
+        super(InvOutBlockMVD_nomax, self).__init__()
+
+        c_in = params['dim_in']
+        mlp = params['mlp']
+        c_out = mlp[-1]
+        na = params['kanchor']
+
+        # Attention layer
+        self.temperature = params['temperature']
+        self.attention_layer = nn.Sequential(nn.Conv2d(c_in, c_in, 1), \
+                                                 nn.ReLU(inplace=True), \
+                                                 nn.Conv2d(c_in,c_in,1))
+
+        if 'pooling' not in params.keys():
+            self.pooling_method = 'max'
+        else:
+            self.pooling_method = params['pooling']
+
+        self.pointnet = sptk.PointnetSO3Conv_nomax(c_in,c_out,na)
+
+        # self.out_norm = nn.BatchNorm1d(c_out, affine=True)
+
+
+    def forward(self, x):
+        # nb, nc, np, na -> nb, nc, na
+
+        # attention first
+        nb, nc, np, na = x.feats.shape
+
+        attn = self.attention_layer(x.feats)
+        attn = F.softmax(attn, dim=3)
+
+        # nb, nc, np, 1
+        x_out = (x.feats * attn).sum(-1, keepdim=True)
+        x_in = zptk.SphericalPointCloud(x.xyz, x_out, None)
+
+        # nb, np, nc
+        x_out = self.pointnet(x_in).view(nb, np, -1)
+
+        return F.normalize(x_out, p=2, dim=2), attn
+
 
 # outblock for rotation regression model
 class SO3OutBlockR(nn.Module):

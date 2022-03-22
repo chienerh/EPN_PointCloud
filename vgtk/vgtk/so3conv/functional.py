@@ -16,6 +16,7 @@ import vgtk.cuda.gathering as gather
 import vgtk.cuda.grouping as cuda_nn
 
 import vgtk.spconv as zpconv
+from vgtk.kernel_points import load_kernels
 
 
 inter_so3conv_feat_grouping = zpconv.inter_zpconv_grouping_naive
@@ -94,6 +95,19 @@ def get_sphereical_kernel_points_from_ply(radius, kernel_size):
         r = np.sqrt((pc**2).sum(1).max())
         return pc*radius/r
     return normalize(ply, radius)
+
+def get_sphereical_kernel_points_from_ply2(radius):
+    root = vgtk.__path__[0]
+    ply_path = os.path.join(root, 'data', 'anchors', 'k_015_center_3D.ply')
+    ply = pctk.load_ply(ply_path).astype('float32')
+    def normalize(pc, radius):
+        r = np.sqrt((pc**2).sum(1).max())
+        return pc*radius/r
+    return normalize(ply, radius)
+
+def load_kpconv_kernel(radius, num_kpoints, dimension, fixed):
+    K_points_numpy = load_kernels(radius, num_kpoints, dimension, fixed, lloyd=False)
+    return K_points_numpy
 
 
 # initial_anchor_query(

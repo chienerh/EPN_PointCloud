@@ -7,6 +7,8 @@ import vgtk.pc as pctk
 import numpy as np
 import os
 import os.path as osp
+# optional, wandb 
+import wandb
 
 class Trainer(vgtk.Trainer):
     def __init__(self, opt):
@@ -132,6 +134,11 @@ class Trainer(vgtk.Trainer):
         self.summary.update(log_info)
         self.iter_counter += 1
 
+        # optional wandb
+        wandb.log({'Loss': self.loss.item(), \
+                   'Pos': pos_loss.item(), \
+                   'Neg': neg_loss.item(), \
+                   'Acc': 100 * accuracy.item()})
 
     def _print_running_stats(self, step):
         stats = self.summary.get()

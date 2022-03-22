@@ -6,7 +6,7 @@ parser = vgtk.HierarchyArgmentParser()
 
 # Experiment arguments
 exp_args = parser.add_parser("experiment")
-exp_args.add_argument('--experiment-id', type=str, default='playground',
+exp_args.add_argument('--experiment-id', type=str, default='oxford',
                       help='experiment id')
 exp_args.add_argument('-d', '--dataset-path', type=str, required=True,
                       help='path to datasets')
@@ -26,7 +26,7 @@ net_args.add_argument('-m', '--model', type=str, default='inv_so3net_pn',
 net_args.add_argument('--input-num', type=int, default=1024,
                       help='the number of the input points')
 net_args.add_argument('--output-num', type=int, default=32,
-                      help='the number of the input points')
+                      help='the size of the output feature')
 net_args.add_argument('--search-radius', type=float, default=0.4)
 net_args.add_argument('--normalize-input', action='store_true',
                       help='normalize the input points')
@@ -37,7 +37,7 @@ net_args.add_argument('--init-method', type=str, default="xavier",
 net_args.add_argument('-k','--kpconv', action='store_true', help='If set, use a kpconv structure instead')
 net_args.add_argument('--kanchor', type=int, default=60, help='# of anchors used: {1,20,40,60}')
 net_args.add_argument('--normals', action='store_true', help='If set, add normals to the input (default setting is false)')
-net_args.add_argument('-u', '--flag', type=str, default='max',
+net_args.add_argument('-u', '--flag', type=str, default='attention',
                       help='pooling method: max | mean | attention | rotation')
 net_args.add_argument('--representation', type=str, default='quat',
                       help='how to represent rotation: quaternion | ortho6d ')

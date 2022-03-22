@@ -1,4 +1,9 @@
 trained_models/
+pretrained_model/
+log/
+results/
+wandb/
+__pycaches__/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

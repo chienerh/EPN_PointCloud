@@ -1,5 +1,7 @@
 from SPConvNets.trainer_3dmatch import Trainer
 from SPConvNets.options import opt as opt_3dmatch
+# optional, wandb
+import wandb
 
 SCENE_TO_TEST = [    
               '7-scenes-redkitchen',
@@ -19,7 +21,7 @@ def config_opt_3dmatch(opt):
     opt.no_augmentation = True
 
     if opt.mode == 'train':
-        opt.npt = 16
+        opt.npt = 8 #16
         opt.batch_size = 1
         opt.num_iterations = 150000
         opt.save_freq = 4000
@@ -33,6 +35,13 @@ def config_opt_3dmatch(opt):
 if __name__ == '__main__':
     opt_3dmatch = config_opt_3dmatch(opt_3dmatch)
     
+    # optional, wandb
+    wandb.init(
+        project='train_epn_3dmatch',
+        config={
+        "architecture": 'inv_so3net_pn',
+        "dataset": '3dmatch',})
+
     if opt_3dmatch.mode == 'train':    
         trainer = Trainer(opt_3dmatch)
         trainer.train()
@@ -41,3 +50,7 @@ if __name__ == '__main__':
         opt_3dmatch.experiment_id = opt_3dmatch.resume_path.split('/')[2]
         trainer = Trainer(opt_3dmatch)
         trainer.eval(SCENE_TO_TEST)
+        
+    # optional, wandb
+    wandb.finish()
+

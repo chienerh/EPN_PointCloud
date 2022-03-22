@@ -59,7 +59,8 @@ class KernelPropagation(nn.Module):
         super(KernelPropagation, self).__init__()
 
         # get kernel points (ksx3)
-        kernels = L.get_sphereical_kernel_points_from_ply(KERNEL_CONDENSE_RATIO * radius, kernel_size)
+        # kernels = L.get_sphereical_kernel_points_from_ply(KERNEL_CONDENSE_RATIO * radius, kernel_size)
+        kernels = L.get_sphereical_kernel_points_from_ply2(KERNEL_CONDENSE_RATIO * radius)
 
         # get so3 anchors (60x3x3 rotation matrices)
         anchors = L.get_anchors(kanchor)
@@ -129,7 +130,8 @@ class InterSO3Conv(nn.Module):
         super(InterSO3Conv, self).__init__()
 
         # get kernel points
-        kernels = L.get_sphereical_kernel_points_from_ply(KERNEL_CONDENSE_RATIO * radius, kernel_size)
+        # kernels = L.get_sphereical_kernel_points_from_ply(KERNEL_CONDENSE_RATIO * radius, kernel_size)
+        kernels = L.get_sphereical_kernel_points_from_ply2(KERNEL_CONDENSE_RATIO * radius)
 
         # get so3 anchors (60x3x3 rotation matrices)
         anchors = L.get_anchors(kanchor)
@@ -232,4 +234,38 @@ class PointnetSO3Conv(nn.Module):
 
         feats = self.embed(feats)
         feats = torch.max(feats,2)[0]
+        return feats # nb, nc, na
+
+class PointnetSO3Conv_nomax(nn.Module):
+    '''
+    equivariant pointnet architecture for a better aggregation of spatial point features
+    f (nb, nc, np, na) x xyz (nb, 3, np, na) -> maxpool(h(nb,nc+3,p0,na),h(nb,nc+3,p1,na),h(nb,nc+3,p2,na),...)
+    '''
+    def __init__(self, dim_in, dim_out, kanchor=60):
+        super(PointnetSO3Conv_nomax, self).__init__()
+
+        # get so3 anchors (60x3x3 rotation matrices)
+        anchors = L.get_anchors(kanchor)
+        self.dim_in = dim_in + 3
+        self.dim_out = dim_out
+
+        self.embed = nn.Conv2d(self.dim_in, self.dim_out,1)
+        self.register_buffer('anchors', torch.from_numpy(anchors))
+
+    def forward(self, x):
+        xyz = x.xyz
+        feats = x.feats
+        nb, nc, np, na = feats.shape
+
+        # normalize xyz
+        xyz = xyz - xyz.mean(2,keepdim=True)
+
+        if na == 1:
+            feats = torch.cat([x.feats, xyz[...,None]],1)
+        else:
+            xyzr = torch.einsum('aji,bjn->bina',self.anchors,xyz)
+            feats = torch.cat([x.feats, xyzr],1)
+
+        feats = self.embed(feats)
+        # feats = torch.max(feats,2)[0]
         return feats # nb, nc, na

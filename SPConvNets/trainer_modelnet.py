@@ -8,6 +8,8 @@ import numpy as np
 import os
 import torch.nn.functional as F
 from sklearn.neighbors import KDTree
+# optional, wandb 
+import wandb
 
 class Trainer(vgtk.Trainer):
     def __init__(self, opt):
@@ -125,6 +127,12 @@ class Trainer(vgtk.Trainer):
 
         self.summary.update(log_info)
 
+        # optional wandb
+        wandb.log({"Loss": cls_loss.item(), \
+                   "Acc": 100 * acc.item(), \
+                   "R_Loss": r_loss.item(), \
+                   "R_Acc": 100 * r_acc.item()})
+
 
     def _print_running_stats(self, step):
         stats = self.summary.get()
@@ -187,7 +195,7 @@ class Trainer(vgtk.Trainer):
                 all_labels.append(in_label.cpu().numpy())
                 all_feats.append(feat.cpu().numpy())
 
-                accs.append(acc)
+                accs.append(acc.item())
                 self.logger.log("Testing", "Accuracy: %.1f, Loss: %.2f!"%(100*acc.item(), loss.item()))
                 if self.attention_model:
                     self.logger.log("Testing", "Rot Acc: %.1f, Rot Loss: %.2f!"%(100*r_acc.item(), r_loss.item()))

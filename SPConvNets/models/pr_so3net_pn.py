@@ -1,3 +1,7 @@
+"""
+network architechture for place recognition (Oxford dataset)
+"""
+
 import math
 import os
 import numpy as np
@@ -11,24 +15,23 @@ import json
 import vgtk
 import SPConvNets.utils as M
 import vgtk.spconv.functional as L
+import config as cfg
 
-class InvSO3ConvModel(nn.Module):
+class PRSO3ConvModel(nn.Module):
     def __init__(self, params):
-        super(InvSO3ConvModel, self).__init__()
+        super(PRSO3ConvModel, self).__init__()
 
         self.backbone = nn.ModuleList()
         for block_param in params['backbone']:
             self.backbone.append(M.BasicSO3ConvBlock(block_param))
 
-        self.outblock = M.InvOutBlockMVD(params['outblock'])
-        # self.outblock = M.InvOutBlockPointnet(params['outblock'])
+        self.outblock = M.InvOutBlockMVD_nomax(params['outblock'])
         self.na_in = params['na']
         self.invariance = True
 
     def forward(self, x):
         # nb, np, 3 -> [nb, 3, np] x [nb, 1, np, na]
         x = M.preprocess_input(x, self.na_in, False)
-        # x = M.preprocess_input(x, 1)
 
         for block_i, block in enumerate(self.backbone):
             x = block(x)
@@ -41,10 +44,8 @@ class InvSO3ConvModel(nn.Module):
 
 # Full Version
 def build_model(opt,
-                mlps=[[32,32], [64,64], [128,128], [128,128]],
+                mlps=[[32,32], [64,64], [128,128]], # [128,128]],
                 out_mlps=[128, 64],
-                # mlps=[[32,32], [64,64]],
-                # out_mlps=[64, 64],
                 strides=[2, 2, 2, 2],
                 initial_radius_ratio = 0.2,
                 sampling_ratio = 0.8, #0.4, 0.36
@@ -53,10 +54,11 @@ def build_model(opt,
                 kernel_multiplier = 2,
                 sigma_ratio= 0.5, # 1e-3, 0.68
                 xyz_pooling = None, # None, 'no-stride'
-                to_file=None):
+                to_file=None,
+                downsample=True):
 
     device = opt.device
-    input_num= opt.model.input_num
+    input_num= cfg.NUM_POINTS #opt.model.input_num
     dropout_rate= opt.model.dropout_rate
     temperature= opt.train_loss.temperature
     so3_pooling =  opt.model.flag
@@ -66,7 +68,7 @@ def build_model(opt,
     na = 1 if opt.model.kpconv else opt.model.kanchor
 
     # to accomodate different input_num
-    if input_num > 1024:
+    if downsample and opt.model.model != 'epn_gcn_netvlad' and input_num > 1024:
         sampling_ratio /= (input_num / 1024)
         strides[0] = int(2 * (input_num / 1024))
         print("Using sampling_ratio:", sampling_ratio)
@@ -178,7 +180,7 @@ def build_model(opt,
         with open(to_file, 'w') as outfile:
             json.dump(params, outfile)
 
-    model = InvSO3ConvModel(params).to(device)
+    model = PRSO3ConvModel(params).to(device)
     return model
 
 def build_model_from(opt, outfile_path=None):

@@ -255,6 +255,7 @@ def icosahedron_so3_trimesh(mesh_path, gsize=3, use_quats=False):
     Rs = get_so3_from_anchors_np(face_normals, gsize=gsize) # .reshape(na, gsize, 3, 3)
     # 60x12
     Rs = np.einsum('bij,kj', Rs, Rs[29])
+    print('mesh', mesh, '\ngsize', gsize)
     R_adj = get_adjmatrix_trimesh(mesh, gsize)
 
     # 60x12x3x3
