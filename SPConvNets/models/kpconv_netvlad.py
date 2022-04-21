@@ -18,17 +18,17 @@ import vgtk.spconv.functional as L
 import SPConvNets.models.pr_so3net_pn as frontend
 import config as cfg
 
-class EPNNetVLAD(nn.Module):
+class KPConvNetVLAD(nn.Module):
     def __init__(self, opt):
-        super(EPNNetVLAD, self).__init__()
+        super(KPConvNetVLAD, self).__init__()
         self.opt = opt
         
         # epn param
         mlps=[[64], [128]]
         out_mlps=[128, self.opt.model.output_num]
-        strides=[1, 1]
-        self.epn = frontend.build_model(self.opt, mlps, out_mlps, strides, downsample=False)
-        print('EPN', self.epn)
+        strides=[2, 1]
+        self.kpconv = frontend.build_model(self.opt, mlps, out_mlps, strides, downsample=False)
+        print('kpconv network', self.kpconv)
         
         self.netvlad = M.NetVLADLoupe(feature_size=self.opt.model.output_num, max_samples=self.opt.num_selected_points, cluster_size=64,
                                      output_dim=self.opt.global_feature_dim, gating=True, add_batch_norm=True,
@@ -40,23 +40,9 @@ class EPNNetVLAD(nn.Module):
         Local Feature: B, N', D_local
         Global Feature: B, D_output
         '''
-        # print('EPNNetVLAD x1', x.shape)
-        B, N, _ = x.shape
-        x_frontend = torch.empty(size=(B, N, self.opt.model.output_num))
-        for i in range(B):
-            x_onlyone = x[i, :, :].unsqueeze(0)
-            x_onlyone = self.downsample_pointcloud(x_onlyone)
-            x_frontend[i], attn = self.epn(x_onlyone)
-        # print('x after epn', x_frontend.shape)
+        x, _ = self.kpconv(x)
+        x_frontend = x
 
-        x_out = self.netvlad(x_frontend)
+        x = self.netvlad(x)
 
-        return x_out, x_frontend
-
-    def downsample_pointcloud(self, x_input):
-        select_index = torch.randint(0, cfg.NUM_POINTS, (cfg.NUM_SELECTED_POINTS,))
-
-        # reduce size of point cloud
-        x_downsampled = x_input[:, select_index, :].view(1, cfg.NUM_SELECTED_POINTS, 3)
-        
-        return x_downsampled
+        return x, x_frontend

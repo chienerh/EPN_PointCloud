@@ -37,7 +37,7 @@ print('kpconv', opt_oxford.model.kpconv)
 # param tuning
 opt_oxford.model.search_radius = 0.35 #0.4
 opt_oxford.model.initial_radius_ratio = 0.2 #0.2
-opt_oxford.model.sampling_ratio = 0.6 #0.8
+opt_oxford.model.sampling_ratio = 0.8 #0.8
 
 # EPN
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -48,7 +48,7 @@ opt_oxford.model.output_num = cfg.LOCAL_FEATURE_DIM # output of EPN
 # if cfg.MODEL == 'epn_gcn_netvlad':
 #     opt_oxford.num_selected_points = cfg.NUM_SELECTED_POINTS
 # else:
-opt_oxford.num_selected_points = cfg.NUM_POINTS//(2*int(2*cfg.NUM_POINTS/1024)) #128
+opt_oxford.num_selected_points = cfg.NUM_SELECTED_POINTS #cfg.NUM_POINTS//(2*int(2*cfg.NUM_POINTS/1024)) #128
 opt_oxford.global_feature_dim = cfg.FEATURE_OUTPUT_DIM # output of NetVLAD
 
 
@@ -143,6 +143,19 @@ def main():
     elif cfg.MODEL == 'epn_transformer_netvlad':
         from SPConvNets.models.epn_gcn_netvlad import EPN_Transformer_NetVLAD
         model = EPN_Transformer_NetVLAD(opt_oxford)
+    elif cfg.MODEL == 'epn_conv_netvlad':
+        from SPConvNets.models.epn_conv_netvlad import EPNConvNetVLAD
+        model = EPNConvNetVLAD(opt_oxford)
+    elif cfg.MODEL == 'epn_conv_ca_netvlad':
+        from SPConvNets.models.epn_gcn_netvlad import EPNConvCANetVLAD
+        model = EPNConvCANetVLAD(opt_oxford)
+    elif cfg.MODEL == 'ca_epn_netvlad_select':
+        from SPConvNets.models.epn_gcn_netvlad import CA_EPN_NetVLAD_select
+        model = CA_EPN_NetVLAD_select(opt_oxford)
+        model = EPNConvCANetVLAD(opt_oxford)
+    elif cfg.MODEL == 'kpconv_netvlad':
+        from SPConvNets.models.kpconv_netvlad import KPConvNetVLAD
+        model = KPConvNetVLAD(opt_oxford)
         
     model = model.to(device)
     parameters = filter(lambda p: p.requires_grad, model.parameters())
@@ -263,11 +276,11 @@ def train_one_epoch(model, optimizer, loss_function, epoch):
                 break
 
         if(faulty_tuple):
-            log_string('\n---- Iteration ' + str(i) + '/'+ str(len(train_file_idxs)//cfg.BATCH_NUM_QUERIES) + ' | FAULTY TUPLE -----\n')
+            log_string('---- Iteration ' + str(i) + '/'+ str(len(train_file_idxs)//cfg.BATCH_NUM_QUERIES) + ' | FAULTY TUPLE -----')
             continue
 
         if(no_other_neg):
-            log_string('\n---- Iteration ' + str(i) + '/'+ str(len(train_file_idxs)//cfg.BATCH_NUM_QUERIES) + ' | NO OTHER NEG -----\n')
+            log_string('---- Iteration ' + str(i) + '/'+ str(len(train_file_idxs)//cfg.BATCH_NUM_QUERIES) + ' | NO OTHER NEG -----')
             continue
 
         queries = []
@@ -287,7 +300,7 @@ def train_one_epoch(model, optimizer, loss_function, epoch):
         positives = np.array(positives, dtype=np.float32)
         negatives = np.array(negatives, dtype=np.float32)
         if (len(queries.shape) != 4):
-            log_string('\n---- Iteration ' + str(i) + '/'+ str(len(train_file_idxs)//cfg.BATCH_NUM_QUERIES) + ' | FAULTY QUERY -----\n')
+            log_string('---- Iteration ' + str(i) + '/'+ str(len(train_file_idxs)//cfg.BATCH_NUM_QUERIES) + ' | FAULTY QUERY -----')
             continue
 
         ''' SERIOUSLY TRAINING'''
@@ -337,11 +350,11 @@ def train_one_epoch(model, optimizer, loss_function, epoch):
                         break
 
                 if(faulty_eval_tuple):
-                    log_string('\n----' + str(i) + ' | FAULTY EVAL TUPLE' + '-----')
+                    log_string('----' + str(i) + ' | FAULTY EVAL TUPLE' + '-----')
                     continue
 
                 if(no_other_neg):
-                    log_string('\n----' + str(i) + ' | NO OTHER NEG EVAL' + '-----')
+                    log_string('----' + str(i) + ' | NO OTHER NEG EVAL' + '-----')
                     continue  
 
                 eval_batches_counted+=1
@@ -382,7 +395,7 @@ def train_one_epoch(model, optimizer, loss_function, epoch):
         if (epoch > 5 and i % (1400 // cfg.BATCH_NUM_QUERIES) == 29):
             TRAINING_LATENT_VECTORS = get_latent_vectors(
                 model, TRAINING_QUERIES)
-            log_string('\nUpdated cached feature vectors\n')
+            # log_string('Updated cached feature vectors')
 
         if (i % (6000 // cfg.BATCH_NUM_QUERIES) == 101):
             if isinstance(model, nn.DataParallel):
@@ -421,6 +434,7 @@ def get_feature_representation(filename, model):
     with torch.no_grad():
         q = torch.from_numpy(queries).float()
         q = q.to(device)
+        # print('get_feature_representation', q.shape)
         output, _ = model(q)
     output = output.detach().cpu().numpy()
     output = np.squeeze(output)
@@ -483,6 +497,7 @@ def get_latent_vectors(model, dict_to_process):
 
         with torch.no_grad():
             queries_tensor = torch.from_numpy(queries).float()
+            # print('get_latent_vectors edge cases', queries_tensor.shape)
             o1, _ = model(queries_tensor)
 
         output = o1.detach().cpu().numpy()

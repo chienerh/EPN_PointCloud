@@ -268,7 +268,65 @@ class CrossAttnetion(nn.Module):
 
     def forward(self, descs):
         if descs.shape[0] >=4:
-            # local features with shape [B, D, N]
+            # during training, the input for each iteration is a pair of query, pos, neg, and otherneg
+            x_query, x_pos, x_neg, x_otherneg = torch.split(
+                descs.transpose(1,2), [1, cfg.TRAIN_POSITIVES_PER_QUERY, cfg.TRAIN_NEGATIVES_PER_QUERY, 1], dim=0)
+            
+            x_query = x_query + self.ca(x_query, x_pos)
+            x_pos = x_pos + self.ca(x_pos, x_query)
+            x_neg = x_neg + self.ca(x_neg, x_query)
+            x_otherneg = x_otherneg + self.ca(x_otherneg, x_query)    
+            
+            x_gcn = torch.cat((x_query, x_pos, x_neg, x_otherneg), 0) # [B, C, N]
+        elif descs.shape[0] == 3:
+            print('no otherneg')
+            x_query, x_pos, x_neg = torch.split(
+                descs.transpose(1,2), [1, cfg.TRAIN_POSITIVES_PER_QUERY, cfg.TRAIN_NEGATIVES_PER_QUERY], dim=0)
+            
+            x_query = x_query + self.ca(x_query, x_pos)
+            x_pos = x_pos + self.ca(x_pos, x_query)
+            x_neg = x_neg + self.ca(x_neg, x_query) 
+            
+            x_gcn = torch.cat((x_query, x_pos, x_neg), 0)
+        elif descs.shape[0] == 2:
+            print('only pos')
+            x_query, x_pos = torch.split(
+                descs.transpose(1,2), [1, cfg.TRAIN_POSITIVES_PER_QUERY], dim=0)
+            
+            x_query = x_query + self.ca(x_query, x_pos)
+            x_pos = x_pos + self.ca(x_pos, x_query)
+            
+            x_gcn = torch.cat((x_query, x_pos), 0)
+        elif descs.shape[0] == 1:
+            print('only query')
+            x_query = descs.transpose(1,2)
+
+            x_query = x_query + self.ca(x_query, x_query)
+            
+            x_gcn = x_query
+        else:
+            print('not able to run network')
+            x_gcn = descs.transpose(1,2)
+
+        x_gcn = x_gcn.transpose(1,2)
+        return x_gcn
+
+
+class CrossAttnetion_all(nn.Module):
+    """
+        Only cross-attention
+        Input:
+            feats:      [B, N, C] -> [B, C, N]
+        Output:
+            feats:      [B, C, N]
+        """
+    def __init__(self, num_head: int, feature_dim: int):
+        super().__init__()
+        self.ca = AttentionalPropagation(feature_dim, num_head)
+
+    def forward(self, descs):
+        if descs.shape[0] >=4:
+            # during training, the input for each iteration is a pair of query, pos, neg, and otherneg
             x_query, x_pos, x_neg, x_otherneg = torch.split(
                 descs.transpose(1,2), [1, cfg.TRAIN_POSITIVES_PER_QUERY, cfg.TRAIN_NEGATIVES_PER_QUERY, 1], dim=0)
             
@@ -311,51 +369,6 @@ class CrossAttnetion(nn.Module):
         else:
             print('not able to run network')
             x_gcn = descs.transpose(1,2)
-
-        # if descs.shape[0] >=4:
-        #     # local features with shape [B, D, N]
-        #     x_query, x_pos, x_neg, x_otherneg = torch.split(
-        #         descs.transpose(1,2), [1, cfg.TRAIN_POSITIVES_PER_QUERY, cfg.TRAIN_NEGATIVES_PER_QUERY, 1], dim=0)
-            
-        #     x_query = self.ca(x_query, x_pos)
-        #     x_pos = self.ca(x_pos, x_query)
-        #     x_neg = self.ca(x_neg, x_query)
-        #     x_otherneg = self.ca(x_otherneg, x_query)    
-            
-        #     # output conditioned feature with shape [B, C, N]
-        #     x_gcn = torch.cat((x_query, x_pos, x_neg, x_otherneg), 0)
-        # elif descs.shape[0] == 3:
-        #     # local features with shape [B, D, N]
-        #     x_query, x_pos, x_neg = torch.split(
-        #         descs.transpose(1,2), [1, cfg.TRAIN_POSITIVES_PER_QUERY, cfg.TRAIN_NEGATIVES_PER_QUERY], dim=0)
-            
-        #     x_query = self.ca(x_query, x_pos)
-        #     x_pos = self.ca(x_pos, x_query)
-        #     x_neg = self.ca(x_neg, x_query) 
-            
-        #     # output conditioned feature with shape [B, C, N]
-        #     x_gcn = torch.cat((x_query, x_pos, x_neg), 0)
-        # elif descs.shape[0] == 2:
-        #     # local features with shape [B, D, N]
-        #     x_query, x_pos = torch.split(
-        #         descs.transpose(1,2), [1, cfg.TRAIN_POSITIVES_PER_QUERY], dim=0)
-            
-        #     x_query = self.ca(x_query, x_pos)
-        #     x_pos = self.ca(x_pos, x_query)
-            
-        #     # output conditioned feature with shape [B, C, N]
-        #     x_gcn = torch.cat((x_query, x_pos), 0)
-        # elif descs.shape[0] == 1:
-        #     # local features with shape [B, D, N]
-        #     x_query = descs.transpose(1,2)
-
-        #     x_query = self.ca(x_query, x_query)
-            
-        #     # output conditioned feature with shape [B, C, N]
-        #     x_gcn = x_query
-        # else:
-        #     print('not able to run network')
-        #     x_gcn = descs.transpose(1,2)
 
         x_gcn = x_gcn.transpose(1,2)
         return x_gcn

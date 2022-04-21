@@ -46,6 +46,7 @@ class BasicSO3Conv(nn.Module):
         #self.W = nn.Parameter(torch.Tensor(self.dim_out, self.dim_in*self.kernel_size))
 
     def forward(self, x):
+        # x = [bs, dim_in, kernel_size, np, na]
         bs, np, na = x.shape[0], x.shape[3], x.shape[4]
         x = x.view(bs, self.dim_in*self.kernel_size, np*na)
         x = torch.matmul(self.W, x)
@@ -151,7 +152,7 @@ class InterSO3Conv(nn.Module):
         self.lazy_sample = lazy_sample
         self.pooling = pooling
 
-        self.basic_conv = BasicSO3Conv(dim_in, dim_out, self.kernel_size)
+        self.basic_conv = BasicSO3Conv(dim_in, dim_out, self.kernel_size)      
 
         self.register_buffer('anchors', torch.from_numpy(anchors))
         self.register_buffer('kernels', torch.from_numpy(kernels))

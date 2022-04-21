@@ -48,12 +48,15 @@ def test_global_features():
         elif opt_oxford.model.model == 'epn_ca_netvlad':
             from SPConvNets.models.epn_gcn_netvlad import EPN_CA_NetVLAD
             model = EPN_CA_NetVLAD(opt_oxford)
-        elif cfg.MODEL == 'epn_ca_netvlad_select':
+        elif opt.model.model == 'epn_ca_netvlad_select':
             from SPConvNets.models.epn_gcn_netvlad import EPN_CA_NetVLAD_select
             model = EPN_CA_NetVLAD_select(opt_oxford)
-        elif cfg.MODEL == 'epn_transformer_netvlad':
+        elif opt.model.model == 'epn_transformer_netvlad':
             from SPConvNets.models.epn_gcn_netvlad import EPN_Transformer_NetVLAD
             model = EPN_Transformer_NetVLAD(opt_oxford)
+        elif opt.model.model == 'epn_conv_netvlad':
+            from SPConvNets.models.epn_conv_netvlad import EPNConvNetVLAD
+            model = EPNConvNetVLAD(opt_oxford)
         
         # load pretrained weight
         if opt_oxford.resume_path.split('.')[1] == 'pth':
@@ -66,7 +69,7 @@ def test_global_features():
 
         return model
     
-    def get_global_descriptor(model, network_input):
+    def get_global_descriptor(model, network_input, opt):
         network_input = network_input.reshape((1, network_input.shape[0], network_input.shape[1]))
         network_input = torch.Tensor(network_input).float().cuda()
 
@@ -76,8 +79,8 @@ def test_global_features():
         
         frontend_output = frontend_output.detach().cpu().numpy() #[:, :, 0].reshape((1024,))
         print('frontend_output', frontend_output.shape)
-        # print('frontend_output', frontend_output[:,:,-1])
-        frontend_output = frontend_output[:,-1,:]
+
+        # frontend_output = frontend_output[:,0,:]
         frontend_output = frontend_output.reshape((-1,))
 
         # tensor to numpy
@@ -90,7 +93,7 @@ def test_global_features():
 
     opt_oxford.batch_size = 1
     opt_oxford.no_augmentation = True # TODO
-    opt_oxford.model.model = 'epn_netvlad' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_gcn_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
+    opt_oxford.model.model = 'epn_ca_netvlad_select' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_gcn_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
     opt_oxford.device = torch.device('cuda')
 
     # IO
@@ -105,11 +108,13 @@ def test_global_features():
     opt_oxford.pos_per_query = 1
     opt_oxford.neg_per_query = 1
 
-    # opt_oxford.model.search_radius = 0.35
-    opt_oxford.model.initial_radius_ratio = 0.2
+    # param tuning
+    opt_oxford.model.search_radius = 0.35 #0.4
+    opt_oxford.model.initial_radius_ratio = 0.2 #0.2
+    opt_oxford.model.sampling_ratio = 0.8 #0.8
 
     # pretrained weight
-    opt_oxford.resume_path = 'pretrained_model/epn_netvlad_seq567_best.ckpt'
+    opt_oxford.resume_path = 'pretrained_model/epn_ca_netvlad_select_seq567_0322.ckpt'
     
     # input file
     input_folder = 'results/test_network_output/'
@@ -135,15 +140,14 @@ def test_global_features():
     
     with torch.no_grad():          
         # generate descriptors from point clouds
-        output_descriptor, output_pointnet = get_global_descriptor(model, input_pointcloud)
-        rotated_descriptor, rotated_pointnet = get_global_descriptor(model, rotated_pointcloud)
-        translated_descriptor, translated_pointnet = get_global_descriptor(model, translated_pointcloud)
-        rotated_translated_descriptor, rotated_translated_pointnet = get_global_descriptor(model, rotated_translated_pointcloud)
-        translated_rotated_descriptor, translated_rotated_pointnet = get_global_descriptor(model, translated_rotated_pointcloud)
+        output_descriptor, output_pointnet = get_global_descriptor(model, input_pointcloud, opt_oxford)
+        rotated_descriptor, rotated_pointnet = get_global_descriptor(model, rotated_pointcloud, opt_oxford)
+        translated_descriptor, translated_pointnet = get_global_descriptor(model, translated_pointcloud, opt_oxford)
+        rotated_translated_descriptor, rotated_translated_pointnet = get_global_descriptor(model, rotated_translated_pointcloud, opt_oxford)
+        translated_rotated_descriptor, translated_rotated_pointnet = get_global_descriptor(model, translated_rotated_pointcloud, opt_oxford)
         # positives and negatives
-        positive_descriptor, positive_frontend = get_global_descriptor(model, positive_pointcloud)
-        negative_descriptor, negative_frontend = get_global_descriptor(model, negative_pointcloud)
-
+        positive_descriptor, positive_frontend = get_global_descriptor(model, positive_pointcloud, opt_oxford)
+        negative_descriptor, negative_frontend = get_global_descriptor(model, negative_pointcloud, opt_oxford)
 
     # calculate similarity
     similarity_rotate = np.absolute(np.dot(output_descriptor, rotated_descriptor)/(np.linalg.norm(output_descriptor)*np.linalg.norm(rotated_descriptor)))
@@ -214,7 +218,7 @@ def test_global_features():
     plt.xlabel('index')
     plt.ylabel('feature value')
     plt.legend()
-    plt.savefig(os.path.join(input_folder, '0_epnnetvlad_0321_global_descriptor_transform.png'))
+    plt.savefig(os.path.join(input_folder, '0_'+opt_oxford.model.model+'_global_descriptor_transform.png'))
 
     # visualize frontend features of first point
     x_index2 = np.arange(output_pointnet.size)
@@ -228,7 +232,7 @@ def test_global_features():
     plt.ylabel('feature value')
     plt.legend()
     plt.title('Local Features')
-    plt.savefig(os.path.join(input_folder, '0_epnnetvlad_0321_loacl_features_last_tranform.png'))
+    plt.savefig(os.path.join(input_folder, '0_'+opt_oxford.model.model+'_loacl_features_tranform.png'))
 
     # visualize descriptors (positive, negative)
     plt.figure()
@@ -239,7 +243,7 @@ def test_global_features():
     plt.xlabel('index')
     plt.ylabel('feature value')
     plt.legend()
-    plt.savefig(os.path.join(input_folder, '0_epnnetvlad_0321_global_descriptor_posneg.png'))
+    plt.savefig(os.path.join(input_folder, '0_'+opt_oxford.model.model+'_global_descriptor_posneg.png'))
 
     # visualize features of positives and negatives
     plt.figure()
@@ -250,8 +254,7 @@ def test_global_features():
     plt.ylabel('feature value')
     plt.legend()
     plt.title('Local Features')
-    plt.savefig(os.path.join(input_folder, '0_epnnetvlad_0321_loacl_features_last_posneg.png'))
-
+    plt.savefig(os.path.join(input_folder, '0_'+opt_oxford.model.model+'_loacl_features_posneg.png'))
 
 
 if __name__ == "__main__":

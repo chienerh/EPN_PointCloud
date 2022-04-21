@@ -126,6 +126,63 @@ class InterSO3ConvBlock(nn.Module):
         return inter_idx, inter_w, sample_idx, zptk.SphericalPointCloud(x.xyz, feat, x.anchors)
 
 
+class ResNetBottleneckBlock(nn.Module):
+    def __init__(self, dim_in, dim_out, kernel_size, stride,
+                 radius, sigma, n_neighbor, multiplier, kanchor=60,
+                 lazy_sample=None, norm=None, activation='relu', pooling='none', dropout_rate=0):
+        super(ResNetBottleneckBlock, self).__init__()
+        # KPConv
+
+        if lazy_sample is None:
+            lazy_sample = True
+
+        if norm is not None:
+            norm = getattr(nn,norm)
+            
+        # if norm is None:
+        #     norm = nn.InstanceNorm2d #nn.BatchNorm2d
+
+        pooling_method = None if pooling == 'none' else pooling
+        # self.conv = sptk.InterSO3Conv(dim_in, dim_out, kernel_size, stride,
+        #                               radius, sigma, n_neighbor, kanchor=kanchor,
+        #                               lazy_sample=lazy_sample, pooling=pooling_method)
+        self.conv = sptk.InterSO3Conv(dim_out//4, dim_out//4, kernel_size, stride,
+                                      radius, sigma, n_neighbor, kanchor=kanchor,
+                                      lazy_sample=lazy_sample, pooling=pooling_method)
+        self.norm = nn.InstanceNorm2d(dim_out, affine=False) if norm is None else norm(dim_out)
+
+        if activation is None:
+            self.relu = None
+        else:
+            self.relu = getattr(F, activation)
+
+        self.dropout = nn.Dropout(dropout_rate) if dropout_rate > 0 else None
+        
+        self.mlp1 = nn.Linear(dim_in, dim_out//4, bias=False)
+        
+        self.mlp2 = nn.Linear(dim_out//4, dim_out, bias=False)
+
+    def forward(self, x, inter_idx=None, inter_w=None):
+        input_x_feats_shape = x.feats.shape # bs, dim_in, np, na
+        feat = x.feats.permute(0, 2, 3, 1) # bs, np, na, dim_in
+        feat = self.mlp1(feat) # bs, np, na, dim_out//4
+        feat = feat.permute(0, 3, 1, 2) # bs, dim_out//4, np, na
+        x = zptk.SphericalPointCloud(x.xyz, feat, x.anchors)
+
+        inter_idx, inter_w, sample_idx, x = self.conv(x, inter_idx, inter_w) # bs, dim_out//4, np, na
+        feat = self.norm(x.feats)
+
+        if self.relu is not None:
+            feat = self.relu(feat)
+        if self.training and self.dropout is not None:
+            feat = self.dropout(feat)
+
+        feat = feat.permute(0, 2, 3, 1) # bs, np, na, dim_out//4
+        feat = self.mlp2(feat) # bs, np, na, dim_out
+        feat = feat.permute(0, 3, 1, 2) # bs, dim_out, np, na
+        return inter_idx, inter_w, sample_idx, zptk.SphericalPointCloud(x.xyz, feat, x.anchors)
+
+
 class BasicSO3ConvBlock(nn.Module):
     def __init__(self, params):
         super(BasicSO3ConvBlock, self).__init__()
@@ -136,7 +193,8 @@ class BasicSO3ConvBlock(nn.Module):
             if param['type'] == 'intra_block':
                 conv = IntraSO3ConvBlock(**param['args'])
             elif param['type'] == 'inter_block':
-                conv = InterSO3ConvBlock(**param['args'])
+                # conv = InterSO3ConvBlock(**param['args']) #KPConv
+                conv = ResNetBottleneckBlock(**param['args'])
             elif param['type'] == 'separable_block':
                 conv = SeparableSO3ConvBlock(param['args'])
             else:
@@ -772,3 +830,22 @@ class RelSO3OutBlockR(nn.Module):
 
         return x_out
         # return feats.mean(2)
+
+
+class FinalLinear(nn.Module):
+    def __init__(self, params, norm=None):
+        super(FinalLinear, self).__init__()
+
+        c_in = params['dim_in']
+        mlp = params['mlp']
+        c_out = mlp[-1]
+
+        self.head_mlp = nn.Linear(c_in, c_out, bias=False)
+
+
+    def forward(self, x):
+        # x.feats = (bs, c_in, np, na)
+        feat = x.feats.squeeze(-1).permute(0, 2, 1) # bs, N, c_in
+        x_out = self.head_mlp(feat) # bs, N, c_out
+
+        return x_out, None

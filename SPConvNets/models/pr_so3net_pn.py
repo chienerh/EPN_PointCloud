@@ -26,6 +26,7 @@ class PRSO3ConvModel(nn.Module):
             self.backbone.append(M.BasicSO3ConvBlock(block_param))
 
         self.outblock = M.InvOutBlockMVD_nomax(params['outblock'])
+        # self.outblock = M.FinalLinear(params['outblock'])
         self.na_in = params['na']
         self.invariance = True
 
@@ -35,7 +36,8 @@ class PRSO3ConvModel(nn.Module):
 
         for block_i, block in enumerate(self.backbone):
             x = block(x)
-
+            # print('block', block_i, 'x', x.feats.shape)
+        
         x = self.outblock(x)
         return x
 
@@ -94,12 +96,14 @@ def build_model(opt,
     radius_ratio = [initial_radius_ratio * multiplier**sampling_density for multiplier in stride_multipliers]
 
     # radius_ratio = [0.25, 0.5]
+    # radii = [0.05, 0.05, 0.05]
     radii = [r * input_radius for r in radius_ratio]
 
     # Compute sigma
     # weighted_sigma = [sigma_ratio * radii[i]**2 * stride_multipliers[i] for i in range(n_layer + 1)]
 
     weighted_sigma = [sigma_ratio * radii[0]**2]
+    # weighted_sigma = [0.024, 0.024, 0.024]
     for idx, s in enumerate(strides):
         weighted_sigma.append(weighted_sigma[idx] * s)
 
@@ -113,8 +117,8 @@ def build_model(opt,
             # TODO: WARNING: Neighbor here did not consider the actual nn for pooling. Hardcoded in vgtk for now.
             neighbor = int(sampling_ratio * num_centers[i] * radius_ratio[i]**(1/sampling_density))
 
-            if i == 0 and j == 0:
-                neighbor *= int(input_num / 1024)
+            # if i == 0 and j == 0:
+            #     neighbor *= int(input_num / 1024)
 
             kernel_size = 1
             if j == 0:
@@ -134,10 +138,12 @@ def build_model(opt,
             print(f'neighbor: {neighbor}')
             print(f'stride: {inter_stride}')
 
-            sigma_to_print = weighted_sigma[nidx]**2 / 3
-            print(f'sigma: {sigma_to_print}')
-            print(f'radius ratio: {radius_ratio[nidx]}')
+            # sigma_to_print = weighted_sigma[nidx]**2 / 3
+            # print(f'sigma: {sigma_to_print}')
+            # print(f'radius ratio: {radius_ratio[nidx]}')
             # import ipdb; ipdb.set_trace()
+            print(f'radius : {radii[nidx]}')
+            print(f'sigma : {weighted_sigma[nidx]}')
 
             # one-inter one-intra policy
             block_type = 'inter_block' if na != 60  else 'separable_block'

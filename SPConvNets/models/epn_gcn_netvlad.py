@@ -189,8 +189,9 @@ class EPN_CA_NetVLAD_select(nn.Module):
     def __init__(self, opt):
         super(EPN_CA_NetVLAD_select, self).__init__()
         self.opt = opt
+
         # transformation
-        self.trans = True
+        self.trans = False
         self.stn = STN3d(num_points=cfg.NUM_POINTS, k=3, use_bn=False)
 
         # epn param
@@ -210,12 +211,14 @@ class EPN_CA_NetVLAD_select(nn.Module):
         Local Feature: B, 128, self.opt.model.output_num
         Global Feature: B, self.opt.global_feature_dim
         '''
+        # transformation
         if self.trans:
             x = x.unsqueeze(1) # (B, 1, N, D)
             trans = self.stn(x) # B, 3, 3
             x = torch.matmul(torch.squeeze(x), trans) # B, N, 3
 
         select_index = torch.randint(0, cfg.NUM_POINTS, (cfg.NUM_SELECTED_POINTS,))
+        # print('input x', x.shape)
 
         if x.shape[0] >=4:
             query_pcd, pos_pcd, neg_pcd, otherneg_pcd = torch.split(
@@ -267,7 +270,95 @@ class EPN_CA_NetVLAD_select(nn.Module):
 
         x = self.netvlad(x_gcn)
 
-        return x, x_frontend
+        front_end = {'invariant':x_frontend, 'attention':x_gcn}
+
+        return x, x_gcn
+
+
+class CA_EPN_NetVLAD_select(nn.Module):
+    def __init__(self, opt):
+        super(CA_EPN_NetVLAD_select, self).__init__()
+        self.opt = opt
+        
+        self.atten = attention.CrossAttnetion(3, 3)
+
+        # epn param
+        mlps=[[64,64], [128, 128]]
+        out_mlps=[128, self.opt.model.output_num]
+        strides=[1,1]        
+        self.epn = frontend.build_model(self.opt, mlps, out_mlps, strides, downsample=False)
+
+        self.netvlad = M.NetVLADLoupe(feature_size=self.opt.model.output_num, max_samples=self.opt.num_selected_points, cluster_size=64,
+                                     output_dim=self.opt.global_feature_dim, gating=True, add_batch_norm=True,
+                                     is_training=True)
+
+    def forward(self, x):
+        '''
+        INPUT: B, NUM_POINTS, D
+        Local Feature: B, NUM_SELECTED_POINTS, self.opt.model.output_num
+        Global Feature: B, self.opt.global_feature_dim
+        '''
+
+        x = self.atten(x)
+        x_gcn = x
+        # print('x_gcn', x_gcn.shape)
+
+        select_index = torch.randint(0, cfg.NUM_POINTS, (cfg.NUM_SELECTED_POINTS,))
+        # print('input x', x.shape)
+
+        if x.shape[0] >=4:
+            query_pcd, pos_pcd, neg_pcd, otherneg_pcd = torch.split(
+                x, [1, cfg.TRAIN_POSITIVES_PER_QUERY, cfg.TRAIN_NEGATIVES_PER_QUERY, 1], dim=0)
+            
+            # reduce size of point cloud
+            query_pcd = query_pcd[:,select_index, :]
+            pos_pcd = pos_pcd[:,select_index, :]
+            neg_pcd = neg_pcd[:,select_index, :]
+            otherneg_pcd = otherneg_pcd[:,select_index, :]
+
+            x_query, _ = self.epn(query_pcd)
+            x_pos, _ = self.epn(pos_pcd)
+            x_neg, _ = self.epn(neg_pcd)
+            x_otherneg, _ = self.epn(otherneg_pcd)
+            x_frontend = torch.cat((x_query, x_pos, x_neg, x_otherneg), 0)
+        elif x.shape[0] == 3:
+            query_pcd, pos_pcd, neg_pcd = torch.split(
+                x, [1, cfg.TRAIN_POSITIVES_PER_QUERY, cfg.TRAIN_NEGATIVES_PER_QUERY], dim=0)
+
+            # reduce size of point cloud
+            query_pcd = query_pcd[:,select_index, :]
+            pos_pcd = pos_pcd[:,select_index, :]
+            neg_pcd = neg_pcd[:,select_index, :]
+
+            x_query, _ = self.epn(query_pcd)
+            x_pos, _ = self.epn(pos_pcd)
+            x_neg, _ = self.epn(neg_pcd)
+            x_frontend = torch.cat((x_query, x_pos, x_neg), 0)
+        elif x.shape[0] == 2:
+            query_pcd, pos_pcd = torch.split(
+                x, [1, cfg.TRAIN_POSITIVES_PER_QUERY], dim=0)
+
+            # reduce size of point cloud
+            query_pcd = query_pcd[:,select_index, :]
+            pos_pcd = pos_pcd[:,select_index, :]
+
+            x_query, _ = self.epn(query_pcd)
+            x_pos, _ = self.epn(pos_pcd)
+            x_frontend = torch.cat((x_query, x_pos), 0)
+        elif x.shape[0] == 1:
+            query_pcd = x[:,select_index, :]
+
+            x_frontend, _ = self.epn(query_pcd)
+        else:
+            print('x.shape[0]', x.shape[0])
+
+        # print('x_frontend', x_frontend.shape)
+
+        x = self.netvlad(x_frontend)
+
+        front_end = {'invariant':x_frontend, 'attention':x_gcn}
+
+        return x, x_gcn
 
 
 class EPN_Transformer_NetVLAD(nn.Module):

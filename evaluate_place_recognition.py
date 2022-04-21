@@ -50,7 +50,7 @@ def load_pc_files(filenames, opt):
 def evaluate():
     opt_oxford.batch_size = 1
     opt_oxford.no_augmentation = True # TODO
-    opt_oxford.model.model = 'epn_netvlad' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_gcn_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
+    opt_oxford.model.model = 'kpconv_netvlad' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_gcn_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
     opt_oxford.device = torch.device('cuda')
 
     # IO
@@ -62,41 +62,35 @@ def evaluate():
     opt_oxford.num_points = opt_oxford.model.input_num
     opt_oxford.num_selected_points = cfg.NUM_SELECTED_POINTS
     # opt_oxford.num_selected_points = cfg.NUM_POINTS//(2*int(2*cfg.NUM_POINTS/1024))
-    opt_oxford.pos_per_query = 1
-    opt_oxford.neg_per_query = 1
+    opt_oxford.pos_per_query = cfg.TRAIN_POSITIVES_PER_QUERY
+    opt_oxford.neg_per_query = cfg.TRAIN_NEGATIVES_PER_QUERY
 
     opt_oxford.model.search_radius = 0.35
     opt_oxford.model.initial_radius_ratio = 0.2
-    opt_oxford.model.sampling_ratio = 0.7 #0.8
+    opt_oxford.model.sampling_ratio = 0.8 #0.8
 
     # pretrained weight
     # opt_oxford.resume_path = 'pretrained_model/epn_transformer_conv_netvlad_seq567.ckpt'
     # opt_oxford.result_folder = 'results/pr_evaluation_epn_transformer_conv_netvlad_seq567'
-    opt_oxford.resume_path = 'pretrained_model/epn_netvlad_seq567_sampling_ratio_07.ckpt'
-    opt_oxford.result_folder = 'results/pr_evaluation_epn_netvlad_seq567_sampling_ratio_07'
+    opt_oxford.resume_path = 'pretrained_model/kpconv_netvlad_seq567_stride.ckpt'
+    opt_oxford.result_folder = 'results/pr_evaluation_kpconv_netvlad_seq567_stride'
 
     """evaluation"""
     '''rotation vs. translation vs. partial overlap'''
     '''eval on training set'''
-    # opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_train_evaluation_database_rot.pickle'
-    # opt_oxford.query_file = '/home/cel/data/benchmark_datasets/oxford_train_evaluation_query_rot.pickle'
-    # opt_oxford.result_folder = 'results/pr_evaluation_epn_gcn_netvlad_seq567_evalrot'
+    # opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_train_evaluation_database_part.pickle'
+    # opt_oxford.query_file = '/home/cel/data/benchmark_datasets/oxford_train_evaluation_query_part.pickle'
+    # opt_oxford.result_folder = 'results/pr_evaluation_epn_ca_netvlad_select_parttrain'
     '''eval on testing set'''
-    # opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_database_part.pickle'
-    # opt_oxford.query_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_query_part.pickle'
-    # opt_oxford.result_folder = 'results/pr_evaluation_kpconv_netvlad_seq567_predatorkernel_evalpart'
+    # opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_database_tran.pickle'
+    # opt_oxford.query_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_query_tran.pickle'
+    # opt_oxford.result_folder = 'results/pr_evaluation_epn_conv_netvlad_tran'
 
     '''seq 5-7'''
     opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_database_seq567.pickle'
     opt_oxford.query_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_query_seq567.pickle'
     opt_oxford.pointnetvlad_result_folder = 'results/pr_evaluation_pointnetvlad_seq567'
-    opt_oxford.dgcnnnetvlad_result_folder = 'results/pr_evaluation_dgcnn_netvlad_seq567'
-    # # opt_oxford.baseline_result_folder = ['results/pr_evaluation_epn_netvlad_seq567_inputradius03', \
-    #                                      'results/pr_evaluation_epn_netvlad_seq567_inputradius035', \
-    #                                      'results/pr_evaluation_epn_netvlad_seq567_inputradius037', \
-    #                                      'results/pr_evaluation_epn_netvlad_seq567_inputradius04', \
-    #                                      'results/pr_evaluation_epn_netvlad_seq567_inputradius045', \
-    #                                      'results/pr_evaluation_epn_netvlad_seq567_inputradius05']
+    # opt_oxford.dgcnnnetvlad_result_folder = 'results/pr_evaluation_dgcnn_netvlad_seq567'
 
     '''whole dataset'''
     # opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_database.pickle'
@@ -130,12 +124,21 @@ def evaluate():
     elif opt_oxford.model.model == 'epn_ca_netvlad':
         from SPConvNets.models.epn_gcn_netvlad import EPN_CA_NetVLAD
         model = EPN_CA_NetVLAD(opt_oxford)
-    elif cfg.MODEL == 'epn_ca_netvlad_select':
+    elif opt_oxford.model.model == 'epn_ca_netvlad_select':
         from SPConvNets.models.epn_gcn_netvlad import EPN_CA_NetVLAD_select
         model = EPN_CA_NetVLAD_select(opt_oxford)
-    elif cfg.MODEL == 'epn_transformer_netvlad':
+    elif opt_oxford.model.model == 'epn_transformer_netvlad':
         from SPConvNets.models.epn_gcn_netvlad import EPN_Transformer_NetVLAD
         model = EPN_Transformer_NetVLAD(opt_oxford)
+    elif opt_oxford.model.model == 'epn_conv_netvlad':
+        from SPConvNets.models.epn_conv_netvlad import EPNConvNetVLAD
+        model = EPNConvNetVLAD(opt_oxford)
+    elif opt_oxford.model.model == 'ca_epn_netvlad_select':
+        from SPConvNets.models.epn_gcn_netvlad import CA_EPN_NetVLAD_select
+        model = CA_EPN_NetVLAD_select(opt_oxford)
+    elif opt_oxford.model.model == 'kpconv_netvlad':
+        from SPConvNets.models.kpconv_netvlad import KPConvNetVLAD
+        model = KPConvNetVLAD(opt_oxford)
         
     # load pretrained file
     if opt_oxford.resume_path.split('.')[1] == 'pth':
@@ -214,11 +217,47 @@ def evaluate_model(model, opt):
         output.write("Average Top 1% Recall:\n")
         output.write(str(ave_one_percent_recall))
 
+    plot_average_recall_curve(ave_recall, opt)
 
     # precision-recall curve
     get_precision_recall_curve(QUERY_SETS, QUERY_VECTORS, DATABASE_VECTORS, opt, ave_one_percent_recall)
     
     return ave_one_percent_recall
+
+
+def plot_average_recall_curve(ave_recall, opt):
+    index = np.arange(1, 26)
+    plt.figure()
+    if opt_oxford.model.model == 'kpconv_netvlad':
+        plt.plot(index, ave_recall, label='KPConv-NetVLAD')
+    else:
+        plt.plot(index, ave_recall, label='EPN-NetVLAD')
+
+    try:
+        ave_recall_pointnetvlad = ''
+        with open(os.path.join(opt.pointnetvlad_result_folder, 'results.txt'), "r") as pointnetvlad_result_file:
+            ave_recall_pointnetvlad_temp = pointnetvlad_result_file.readlines()[1:6]
+            for i in range(len(ave_recall_pointnetvlad_temp)):
+                ave_recall_pointnetvlad_temp[i] = ave_recall_pointnetvlad_temp[i].replace('[', '')
+                ave_recall_pointnetvlad_temp[i] = ave_recall_pointnetvlad_temp[i].replace(']', '')
+                ave_recall_pointnetvlad_temp[i] = ave_recall_pointnetvlad_temp[i].replace('\n', '')
+                ave_recall_pointnetvlad = ave_recall_pointnetvlad + ave_recall_pointnetvlad_temp[i]
+            ave_recall_pointnetvlad = np.array(ave_recall_pointnetvlad.split())
+            ave_recall_pointnetvlad = np.asarray(ave_recall_pointnetvlad, dtype = float)
+        plt.plot(index, ave_recall_pointnetvlad, 'k--', label='PointNetVLAD')
+    except:
+        print('no pointnetvlad')
+    
+    plt.title("Average recall @N Curve")
+    plt.xlabel('in top N')
+    plt.ylabel('Average recall @N [%]')
+    # plt.xlim(-1,26)
+    # plt.ylim(0,105)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(opt.result_folder, "average_recall_curve.png"))
+    print('Average recall curve is saved at:', os.path.join(opt.result_folder, "average_recall_curve.png"))
+
 
 def get_precision_recall_curve(QUERY_SETS, QUERY_VECTORS, DATABASE_VECTORS, opt, ave_one_percent_recall):
     y_true = []
@@ -362,6 +401,7 @@ def get_latent_vectors(model, dict_to_process, opt):
             feed_tensor = torch.from_numpy(queries).float()
             # feed_tensor = feed_tensor.unsqueeze(1)
             feed_tensor = feed_tensor.to(opt.device)
+            # print('evaluation get_latent_vectors', feed_tensor.shape)
             out, _ = model(feed_tensor)
 
         out = out.detach().cpu().numpy()
@@ -387,6 +427,7 @@ def get_latent_vectors(model, dict_to_process, opt):
             feed_tensor = torch.from_numpy(queries).float()
             # feed_tensor = feed_tensor.unsqueeze(1)
             feed_tensor = feed_tensor.to(opt.device)
+            # print('evaluation get_latent_vectors edge cases', feed_tensor.shape)
             o1, _ = model(feed_tensor)
 
         output = o1.detach().cpu().numpy()

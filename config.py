@@ -1,7 +1,7 @@
 # GLOBAL
-EXP_NAME = 'epn_netvlad_seq567_sampling_ratio_06'
+EXP_NAME = 'epn_netvlad_seq567'
 MODEL = 'epn_netvlad'
-# testing: 'epn_netvlad', 'epn_gcn_netvlad', 'epn_ca_netvlad', 'epn_transformer_netvlad'
+# testing: 'epn_netvlad', 'kpconv_netvlad', 'epn_gcn_netvlad', 'epn_ca_netvlad', 'epn_ca_netvlad_select', 'epn_conv_netvlad', 'epn_transformer_netvlad'
 # archived: 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad' 
 
 # DATA LOADER
@@ -31,8 +31,8 @@ TRIPLET_USE_BEST_POSITIVES = False
 
 # NETWORK
 FEATURE_OUTPUT_DIM = 256 #128 # global descriptor
-LOCAL_FEATURE_DIM = 1024
-NUM_SELECTED_POINTS = 256 #300 #1024 #256 
+LOCAL_FEATURE_DIM = 1024 #1024
+NUM_SELECTED_POINTS = 4096 #4096 #300 #1024 #256
 
 # SAVE PATH
 LOG_DIR = 'log/'
@@ -52,10 +52,12 @@ RESUME = False
 # TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_baseline.pickle'
 TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_baseline_seq567.pickle'
 TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_baseline_seq567.pickle'
+# TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_1024_seq567.pickle'
+# TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_1024_seq567.pickle'
 # TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_19overlap_seq5.pickle'
 # TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_19overlap_seq5.pickle'
-# TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_rot.pickle'
-# TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_rot.pickle'
+# TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_part.pickle'
+# TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_part.pickle'
 
 EVAL_MODEL = 'vn_dgcnn_netvlad'
 RESULTS_FOLDER = 'results/pr_evaluation_vn_dgcnn_netvlad'
@@ -66,7 +68,7 @@ RESUME_FILENAME = 'pretrained_models/dgcnn_related/vn_dgcnn_netvlad.ckpt'
 
 EVAL_BATCH_SIZE = 1
 EVAL_POSITIVES_PER_QUERY = 2
-EVAL_NEGATIVES_PER_QUERY = 6
+EVAL_NEGATIVES_PER_QUERY = 2
 
 # EVAL_DATABASE_FILE = '/home/cel/data/benchmark_datasets/oxford_evaluation_database.pickle'
 # EVAL_QUERY_FILE = '/home/cel/data/benchmark_datasets/oxford_evaluation_query.pickle'
