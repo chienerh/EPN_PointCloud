@@ -18,15 +18,18 @@ import vgtk.spconv.functional as L
 import config as cfg
 
 class PRSO3ConvModel(nn.Module):
-    def __init__(self, params):
+    def __init__(self, params, outblock):
         super(PRSO3ConvModel, self).__init__()
 
         self.backbone = nn.ModuleList()
         for block_param in params['backbone']:
             self.backbone.append(M.BasicSO3ConvBlock(block_param))
 
-        self.outblock = M.InvOutBlockMVD_nomax(params['outblock'])
-        # self.outblock = M.FinalLinear(params['outblock'])
+        if outblock is not None:
+            if outblock == 'linear':
+                self.outblock = M.FinalLinear(params['outblock'])
+        else:
+            self.outblock = M.InvOutBlockMVD_nomax(params['outblock'])
         self.na_in = params['na']
         self.invariance = True
 
@@ -57,7 +60,8 @@ def build_model(opt,
                 sigma_ratio= 0.5, # 1e-3, 0.68
                 xyz_pooling = None, # None, 'no-stride'
                 to_file=None,
-                downsample=True):
+                downsample=True,
+                outblock=None):
 
     device = opt.device
     input_num= cfg.NUM_POINTS #opt.model.input_num
@@ -185,8 +189,8 @@ def build_model(opt,
     if to_file is not None:
         with open(to_file, 'w') as outfile:
             json.dump(params, outfile)
-
-    model = PRSO3ConvModel(params).to(device)
+    
+    model = PRSO3ConvModel(params, outblock).to(device)
     return model
 
 def build_model_from(opt, outfile_path=None):
