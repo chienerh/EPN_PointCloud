@@ -193,8 +193,8 @@ class BasicSO3ConvBlock(nn.Module):
             if param['type'] == 'intra_block':
                 conv = IntraSO3ConvBlock(**param['args'])
             elif param['type'] == 'inter_block':
-                # conv = InterSO3ConvBlock(**param['args']) #KPConv
-                conv = ResNetBottleneckBlock(**param['args'])
+                conv = InterSO3ConvBlock(**param['args']) #KPConv
+                # conv = ResNetBottleneckBlock(**param['args'])
             elif param['type'] == 'separable_block':
                 conv = SeparableSO3ConvBlock(param['args'])
             else:
@@ -845,7 +845,10 @@ class FinalLinear(nn.Module):
 
     def forward(self, x):
         # x.feats = (bs, c_in, np, na)
-        feat = x.feats.squeeze(-1).permute(0, 2, 1) # bs, N, c_in
+        if x.feats.shape[-1] > 1:
+            feat = torch.sum(x.feats, -1, keepdim=True)
+        feat = feat.squeeze(-1).permute(0, 2, 1)
+
         x_out = self.head_mlp(feat) # bs, N, c_out
 
         return x_out, None

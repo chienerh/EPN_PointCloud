@@ -24,9 +24,9 @@ class KPConvNetVLAD(nn.Module):
         self.opt = opt
         
         # epn param
-        mlps=[[64], [128]]
-        out_mlps=[128, self.opt.model.output_num]
-        strides=[2, 1]
+        mlps=[[64, 128, 256]]
+        out_mlps=[256, self.opt.model.output_num]
+        strides=[1, 1]
         self.kpconv = frontend.build_model(self.opt, mlps, out_mlps, strides, downsample=False, outblock='linear')
         print('kpconv network', self.kpconv)
         

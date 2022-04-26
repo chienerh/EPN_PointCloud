@@ -195,10 +195,10 @@ class EPN_CA_NetVLAD_select(nn.Module):
         self.stn = STN3d(num_points=cfg.NUM_POINTS, k=3, use_bn=False)
 
         # epn param
-        mlps=[[64,64], [128, 128]]
+        mlps=[[128]]
         out_mlps=[128, self.opt.model.output_num]
         strides=[1,1]        
-        self.epn = frontend.build_model(self.opt, mlps, out_mlps, strides, downsample=False)
+        self.epn = frontend.build_model(self.opt, mlps, out_mlps, strides, downsample=False, outblock='linear')
 
         self.atten = attention.CrossAttnetion(4, self.opt.model.output_num)
         self.netvlad = M.NetVLADLoupe(feature_size=self.opt.model.output_num, max_samples=self.opt.num_selected_points, cluster_size=64,

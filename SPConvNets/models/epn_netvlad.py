@@ -24,10 +24,10 @@ class EPNNetVLAD(nn.Module):
         self.opt = opt
         
         # epn param
-        mlps=[[64], [128]]
+        mlps=[[128]]
         out_mlps=[128, self.opt.model.output_num]
         strides=[1, 1]
-        self.epn = frontend.build_model(self.opt, mlps, out_mlps, strides, downsample=False)
+        self.epn = frontend.build_model(self.opt, mlps, out_mlps, strides, downsample=False, outblock='linear')
         print('EPN', self.epn)
         
         self.netvlad = M.NetVLADLoupe(feature_size=self.opt.model.output_num, max_samples=self.opt.num_selected_points, cluster_size=64,
@@ -41,12 +41,12 @@ class EPNNetVLAD(nn.Module):
         Global Feature: B, D_output
         '''
         # print('EPNNetVLAD x1', x.shape)
-        B, N, _ = x.shape
-        x_frontend = torch.empty(size=(B, N, self.opt.model.output_num))
+        B, _, _ = x.shape
+        x_frontend = torch.empty(size=(B, self.opt.num_selected_points, self.opt.model.output_num), device=x.device)
         for i in range(B):
             x_onlyone = x[i, :, :].unsqueeze(0)
             x_onlyone = self.downsample_pointcloud(x_onlyone)
-            x_frontend[i], attn = self.epn(x_onlyone)
+            x_frontend[i], _ = self.epn(x_onlyone)
         # print('x after epn', x_frontend.shape)
 
         x_out = self.netvlad(x_frontend)
@@ -54,9 +54,9 @@ class EPNNetVLAD(nn.Module):
         return x_out, x_frontend
 
     def downsample_pointcloud(self, x_input):
-        select_index = torch.randint(0, cfg.NUM_POINTS, (cfg.NUM_SELECTED_POINTS,))
+        select_index = torch.randint(0, cfg.NUM_POINTS, (self.opt.num_selected_points,))
 
         # reduce size of point cloud
-        x_downsampled = x_input[:, select_index, :].view(1, cfg.NUM_SELECTED_POINTS, 3)
+        x_downsampled = x_input[:, select_index, :].view(1, self.opt.num_selected_points, 3)
         
         return x_downsampled

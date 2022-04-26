@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/pytorch:18.12-py3
+FROM nvcr.io/nvidia/pytorch:21.12-py3
 
 
 LABEL version="0.5"

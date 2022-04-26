@@ -272,7 +272,7 @@ class CrossAttnetion(nn.Module):
             x_query, x_pos, x_neg, x_otherneg = torch.split(
                 descs.transpose(1,2), [1, cfg.TRAIN_POSITIVES_PER_QUERY, cfg.TRAIN_NEGATIVES_PER_QUERY, 1], dim=0)
             
-            x_query = x_query + self.ca(x_query, x_pos)
+            x_query = x_query + self.ca(x_query, x_pos) + self.ca(x_query, x_neg) + self.ca(x_query, x_otherneg)
             x_pos = x_pos + self.ca(x_pos, x_query)
             x_neg = x_neg + self.ca(x_neg, x_query)
             x_otherneg = x_otherneg + self.ca(x_otherneg, x_query)    
@@ -283,7 +283,7 @@ class CrossAttnetion(nn.Module):
             x_query, x_pos, x_neg = torch.split(
                 descs.transpose(1,2), [1, cfg.TRAIN_POSITIVES_PER_QUERY, cfg.TRAIN_NEGATIVES_PER_QUERY], dim=0)
             
-            x_query = x_query + self.ca(x_query, x_pos)
+            x_query = x_query + self.ca(x_query, x_pos) + self.ca(x_query, x_neg)
             x_pos = x_pos + self.ca(x_pos, x_query)
             x_neg = x_neg + self.ca(x_neg, x_query) 
             

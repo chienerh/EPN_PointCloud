@@ -50,7 +50,7 @@ def load_pc_files(filenames, opt):
 def evaluate():
     opt_oxford.batch_size = 1
     opt_oxford.no_augmentation = True # TODO
-    opt_oxford.model.model = 'kpconv_netvlad' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_gcn_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
+    opt_oxford.model.model = 'epn_netvlad' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_gcn_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
     opt_oxford.device = torch.device('cuda')
 
     # IO
@@ -72,8 +72,8 @@ def evaluate():
     # pretrained weight
     # opt_oxford.resume_path = 'pretrained_model/epn_transformer_conv_netvlad_seq567.ckpt'
     # opt_oxford.result_folder = 'results/pr_evaluation_epn_transformer_conv_netvlad_seq567'
-    opt_oxford.resume_path = 'pretrained_model/kpconv_netvlad_seq567_stride.ckpt'
-    opt_oxford.result_folder = 'results/pr_evaluation_kpconv_netvlad_seq567_stride'
+    opt_oxford.resume_path = 'pretrained_model/epn_netvlad_seq567_ds1024_mlp128_lastlinear.ckpt'
+    opt_oxford.result_folder = 'results/pr_evaluation_epn_netvlad_seq567_ds1024_mlp128_lastlinear_evalall'
 
     """evaluation"""
     '''rotation vs. translation vs. partial overlap'''
@@ -87,15 +87,15 @@ def evaluate():
     # opt_oxford.result_folder = 'results/pr_evaluation_epn_conv_netvlad_tran'
 
     '''seq 5-7'''
-    opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_database_seq567.pickle'
-    opt_oxford.query_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_query_seq567.pickle'
-    opt_oxford.pointnetvlad_result_folder = 'results/pr_evaluation_pointnetvlad_seq567'
+    # opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_database_seq567.pickle'
+    # opt_oxford.query_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_query_seq567.pickle'
+    # opt_oxford.pointnetvlad_result_folder = 'results/pr_evaluation_pointnetvlad_seq567'
     # opt_oxford.dgcnnnetvlad_result_folder = 'results/pr_evaluation_dgcnn_netvlad_seq567'
 
     '''whole dataset'''
-    # opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_database.pickle'
-    # opt_oxford.query_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_query.pickle'
-    # opt_oxford.pointnetvlad_result_folder = 'results/pr_evaluation_pointnetvlad'
+    opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_database.pickle'
+    opt_oxford.query_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_query.pickle'
+    opt_oxford.pointnetvlad_result_folder = 'results/pr_evaluation_pointnetvlad'
     # opt_oxford.dgcnnnetvlad_result_folder = 'results/pr_evaluation_dgcnn_netvlad'
 
     '''overlap dataset'''
