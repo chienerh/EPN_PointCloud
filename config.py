@@ -1,7 +1,7 @@
 # GLOBAL
-EXP_NAME = 'epn_ca_netvlad_select_seq567_lastlinear'
-MODEL = 'epn_ca_netvlad_select'
-# testing: 'epn_netvlad', 'kpconv_netvlad', 'epn_gcn_netvlad', 'epn_ca_netvlad', 'epn_ca_netvlad_select', 'epn_conv_netvlad', 'epn_transformer_netvlad'
+EXP_NAME = 'atten_epn_netvlad_select_seq567_64_1024_ds2048'
+MODEL = 'atten_epn_netvlad_select'
+# testing: 'epn_netvlad', 'epn_atten_netvlad', 'atten_epn_netvlad'
 # archived: 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad' 
 
 # DATA LOADER
@@ -9,8 +9,8 @@ DATASET = 'Oxford' # 'KITTI', 'ModelNet40'
 DATASET_FOLDER = '/home/cel/data/benchmark_datasets/'
 NUM_POINTS = 4096 # 4096
 BATCH_NUM_QUERIES = 1
-TRAIN_POSITIVES_PER_QUERY = 2
-TRAIN_NEGATIVES_PER_QUERY = 18
+TRAIN_POSITIVES_PER_QUERY = 1
+TRAIN_NEGATIVES_PER_QUERY = 1
 NORMAL = False
 
 # TRAIN
@@ -32,7 +32,7 @@ TRIPLET_USE_BEST_POSITIVES = False
 # NETWORK
 FEATURE_OUTPUT_DIM = 256 #128 # global descriptor
 LOCAL_FEATURE_DIM = 1024 #1024
-NUM_SELECTED_POINTS = 1024 #4096 #300 #1024 #256
+NUM_SELECTED_POINTS = 2048 #4096 #300 #1024 #256
 
 # SAVE PATH
 LOG_DIR = 'log/'

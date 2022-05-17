@@ -33,36 +33,36 @@ def test_global_features():
 
     def load_model(opt):
         # build model
-        if opt_oxford.model.model == 'epn_netvlad':
+        if opt.model.model == 'epn_netvlad':
             from SPConvNets.models.epn_netvlad import EPNNetVLAD
-            model = EPNNetVLAD(opt_oxford)
+            model = EPNNetVLAD(opt)
         elif opt.model.model == 'pointnetvlad_epnnetvlad':
             from SPConvNets.models.pointnet_epn_netvlad import PointNetVLAD_EPNVLAD
             model = PointNetVLAD_EPNVLAD(opt)
         elif opt.model.model == 'pointnetepn_netvlad':
             from SPConvNets.models.pointnet_epn_netvlad import PointNetEPN_NetVLAD
             model = PointNetEPN_NetVLAD(opt)
-        elif opt_oxford.model.model == 'epn_gcn_netvlad':
+        elif opt.model.model == 'epn_gcn_netvlad':
             from SPConvNets.models.epn_gcn_netvlad import EPN_GCN_NetVLAD
-            model = EPN_GCN_NetVLAD(opt_oxford)
-        elif opt_oxford.model.model == 'epn_ca_netvlad':
+            model = EPN_GCN_NetVLAD(opt)
+        elif opt.model.model == 'epn_ca_netvlad':
             from SPConvNets.models.epn_gcn_netvlad import EPN_CA_NetVLAD
-            model = EPN_CA_NetVLAD(opt_oxford)
+            model = EPN_CA_NetVLAD(opt)
         elif opt.model.model == 'epn_ca_netvlad_select':
             from SPConvNets.models.epn_gcn_netvlad import EPN_CA_NetVLAD_select
-            model = EPN_CA_NetVLAD_select(opt_oxford)
+            model = EPN_CA_NetVLAD_select(opt)
         elif opt.model.model == 'epn_transformer_netvlad':
             from SPConvNets.models.epn_gcn_netvlad import EPN_Transformer_NetVLAD
-            model = EPN_Transformer_NetVLAD(opt_oxford)
+            model = EPN_Transformer_NetVLAD(opt)
         elif opt.model.model == 'epn_conv_netvlad':
             from SPConvNets.models.epn_conv_netvlad import EPNConvNetVLAD
-            model = EPNConvNetVLAD(opt_oxford)
+            model = EPNConvNetVLAD(opt)
         
         # load pretrained weight
-        if opt_oxford.resume_path.split('.')[1] == 'pth':
-            saved_state_dict = torch.load(opt_oxford.resume_path)
-        elif opt_oxford.resume_path.split('.')[1] == 'ckpt':
-            checkpoint = torch.load(opt_oxford.resume_path)
+        if opt.resume_path.split('.')[1] == 'pth':
+            saved_state_dict = torch.load(opt.resume_path)
+        elif opt.resume_path.split('.')[1] == 'ckpt':
+            checkpoint = torch.load(opt.resume_path)
             saved_state_dict = checkpoint['state_dict']    
         model.load_state_dict(saved_state_dict)
         model = nn.DataParallel(model)
@@ -93,7 +93,7 @@ def test_global_features():
 
     opt_oxford.batch_size = 1
     opt_oxford.no_augmentation = True # TODO
-    opt_oxford.model.model = 'epn_ca_netvlad_select' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_gcn_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
+    opt_oxford.model.model = 'epn_netvlad' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_gcn_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
     opt_oxford.device = torch.device('cuda')
 
     # IO
@@ -109,12 +109,12 @@ def test_global_features():
     opt_oxford.neg_per_query = 1
 
     # param tuning
-    opt_oxford.model.search_radius = 0.35 #0.4
-    opt_oxford.model.initial_radius_ratio = 0.2 #0.2
-    opt_oxford.model.sampling_ratio = 0.8 #0.8
+    # opt_oxford.model.search_radius = 0.35 #0.4
+    # opt_oxford.model.initial_radius_ratio = 0.2 #0.2
+    # opt_oxford.model.sampling_ratio = 0.8 #0.8
 
     # pretrained weight
-    opt_oxford.resume_path = 'pretrained_model/epn_ca_netvlad_select_seq567_0322.ckpt'
+    opt_oxford.resume_path = 'pretrained_model/epn_netvlad_seq567_64_maxlinear1024.ckpt'
     
     # input file
     input_folder = 'results/test_network_output/'

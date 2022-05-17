@@ -692,6 +692,8 @@ class InvOutBlockMVD_nomax(nn.Module):
 
         self.pointnet = sptk.PointnetSO3Conv_nomax(c_in,c_out,na)
 
+        self.head_mlp = nn.Linear(c_in, c_out, bias=False)
+
         # self.out_norm = nn.BatchNorm1d(c_out, affine=True)
 
 
@@ -711,7 +713,7 @@ class InvOutBlockMVD_nomax(nn.Module):
         # nb, np, nc
         x_out = self.pointnet(x_in).view(nb, np, -1)
 
-        return F.normalize(x_out, p=2, dim=2), attn
+        return F.normalize(x_out, p=2, dim=2), None #attn
 
 
 # outblock for rotation regression model
@@ -846,7 +848,32 @@ class FinalLinear(nn.Module):
     def forward(self, x):
         # x.feats = (bs, c_in, np, na)
         if x.feats.shape[-1] > 1:
-            feat = torch.sum(x.feats, -1, keepdim=True)
+            # feat = torch.sum(x.feats, -1, keepdim=True)
+            # feat, _ = torch.max(x.feats, -1, keepdim=True)
+            feat = torch.mean(x.feats, -1, keepdim=True)
+        feat = feat.squeeze(-1).permute(0, 2, 1)
+
+        x_out = self.head_mlp(feat) # bs, N, c_out
+
+        return x_out, None
+
+class FinalConv(nn.Module):
+    def __init__(self, params, norm=None):
+        super(FinalLinear, self).__init__()
+
+        c_in = params['dim_in']
+        mlp = params['mlp']
+        c_out = mlp[-1]
+
+        self.head_mlp = nn.Linear(c_in, c_out, bias=False)
+
+
+    def forward(self, x):
+        # x.feats = (bs, c_in, np, na)
+        if x.feats.shape[-1] > 1:
+            # feat = torch.sum(x.feats, -1, keepdim=True)
+            feat, _ = torch.max(x.feats, -1, keepdim=True)
+            # feat = torch.mean(x.feats, -1, keepdim=True)
         feat = feat.squeeze(-1).permute(0, 2, 1)
 
         x_out = self.head_mlp(feat) # bs, N, c_out

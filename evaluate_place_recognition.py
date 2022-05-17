@@ -50,7 +50,7 @@ def load_pc_files(filenames, opt):
 def evaluate():
     opt_oxford.batch_size = 1
     opt_oxford.no_augmentation = True # TODO
-    opt_oxford.model.model = 'epn_netvlad' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_gcn_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
+    opt_oxford.model.model = 'atten_epn_netvlad_select' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
     opt_oxford.device = torch.device('cuda')
 
     # IO
@@ -72,8 +72,8 @@ def evaluate():
     # pretrained weight
     # opt_oxford.resume_path = 'pretrained_model/epn_transformer_conv_netvlad_seq567.ckpt'
     # opt_oxford.result_folder = 'results/pr_evaluation_epn_transformer_conv_netvlad_seq567'
-    opt_oxford.resume_path = 'pretrained_model/epn_netvlad_seq567_ds1024_mlp128_lastlinear.ckpt'
-    opt_oxford.result_folder = 'results/pr_evaluation_epn_netvlad_seq567_ds1024_mlp128_lastlinear_evalall'
+    opt_oxford.resume_path = 'pretrained_model/atten_epn_netvlad_select_seq567_128_1024_ds3000.ckpt'
+    opt_oxford.result_folder = 'results/pr_evaluation_atten_epn_netvlad_select_seq567_128_1024_ds3000_evalall'
 
     """evaluation"""
     '''rotation vs. translation vs. partial overlap'''
@@ -90,13 +90,13 @@ def evaluate():
     # opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_database_seq567.pickle'
     # opt_oxford.query_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_query_seq567.pickle'
     # opt_oxford.pointnetvlad_result_folder = 'results/pr_evaluation_pointnetvlad_seq567'
-    # opt_oxford.dgcnnnetvlad_result_folder = 'results/pr_evaluation_dgcnn_netvlad_seq567'
 
     '''whole dataset'''
     opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_database.pickle'
     opt_oxford.query_file = '/home/cel/data/benchmark_datasets/oxford_evaluation_query.pickle'
-    opt_oxford.pointnetvlad_result_folder = 'results/pr_evaluation_pointnetvlad'
-    # opt_oxford.dgcnnnetvlad_result_folder = 'results/pr_evaluation_dgcnn_netvlad'
+    opt_oxford.pointnetvlad_result_folder = 'results/pr_evaluation_pointnetvlad_seq567_evalall'
+    opt_oxford.scancontext_result_folder = 'results/pr_evaluation_scan_context_oxford_evalall'
+    opt_oxford.m2dp_result_folder = 'results/pr_evaluation_m2dp_evalall'
 
     '''overlap dataset'''
     # opt_oxford.database_file = '/home/cel/data/benchmark_datasets/oxford_19overlap_evaluation_database_seq56.pickle'
@@ -139,6 +139,15 @@ def evaluate():
     elif opt_oxford.model.model == 'kpconv_netvlad':
         from SPConvNets.models.kpconv_netvlad import KPConvNetVLAD
         model = KPConvNetVLAD(opt_oxford)
+    elif opt_oxford.model.model == 'epn_atten_netvlad':
+        from SPConvNets.models.epn_gcn_netvlad import EPN_Atten_NetVLAD
+        model = EPN_Atten_NetVLAD(opt_oxford)
+    elif opt_oxford.model.model == 'atten_epn_netvlad':
+        from SPConvNets.models.epn_gcn_netvlad import Atten_EPN_NetVLAD
+        model = Atten_EPN_NetVLAD(opt_oxford)
+    elif opt_oxford.model.model == 'atten_epn_netvlad_select':
+        from SPConvNets.models.epn_gcn_netvlad import Atten_EPN_NetVLAD_select
+        model = Atten_EPN_NetVLAD_select(opt_oxford)
         
     # load pretrained file
     if opt_oxford.resume_path.split('.')[1] == 'pth':
@@ -173,15 +182,18 @@ def evaluate_model(model, opt):
         QUERY_VECTORS = np.load(os.path.join(opt.result_folder, 'query_vectors.npy'), allow_pickle=True)
     except:
         # generate descriptors from input point clouds
+        print('Generating descriptors from database sets')
         for i in tqdm(range(len(DATABASE_SETS))):
             DATABASE_VECTORS.append(get_latent_vectors(model, DATABASE_SETS[i], opt))
 
+        print('Generating descriptors from query sets')
         for j in tqdm(range(len(QUERY_SETS))):
             QUERY_VECTORS.append(get_latent_vectors(model, QUERY_SETS[j], opt))
 
         np.save(os.path.join(opt.result_folder,'database_vectors.npy'), np.array(DATABASE_VECTORS))
         np.save(os.path.join(opt.result_folder, 'query_vectors.npy'), np.array(QUERY_VECTORS))
 
+    print('Calculating average recall')
     for m in tqdm(range(len(DATABASE_SETS))):
         for n in range(len(QUERY_SETS)):
             if (m == n):
@@ -217,23 +229,29 @@ def evaluate_model(model, opt):
         output.write("Average Top 1% Recall:\n")
         output.write(str(ave_one_percent_recall))
 
-    plot_average_recall_curve(ave_recall, opt)
+    plot_average_recall_curve(ave_recall, ave_one_percent_recall, opt)
 
     # precision-recall curve
     get_precision_recall_curve(QUERY_SETS, QUERY_VECTORS, DATABASE_VECTORS, opt, ave_one_percent_recall)
-    
+    get_f1_recall_curve(opt)
+
     return ave_one_percent_recall
 
 
-def plot_average_recall_curve(ave_recall, opt):
+def plot_average_recall_curve(ave_recall, ave_one_percent_recall, opt):
     index = np.arange(1, 26)
     plt.figure()
     if opt_oxford.model.model == 'kpconv_netvlad':
         plt.plot(index, ave_recall, label='KPConv-NetVLAD')
+    elif opt_oxford.model.model == 'epn_ca_netvlad_select' or opt_oxford.model.model == 'epn_ca_netvlad':
+        plt.plot(index, ave_recall, label='EPN-CA-NetVLAD')
     else:
-        plt.plot(index, ave_recall, label='EPN-NetVLAD')
+        plt.plot(index, ave_recall, label='EPN-NetVLAD, average recall=%.2f' % (ave_one_percent_recall))
 
     try:
+        ave_one_percent_recall_pointnetvlad = None
+        with open(os.path.join(opt.pointnetvlad_result_folder, 'results.txt'), "r") as pointnetvlad_result_file:
+            ave_one_percent_recall_pointnetvlad = float(pointnetvlad_result_file.readlines()[-1])
         ave_recall_pointnetvlad = ''
         with open(os.path.join(opt.pointnetvlad_result_folder, 'results.txt'), "r") as pointnetvlad_result_file:
             ave_recall_pointnetvlad_temp = pointnetvlad_result_file.readlines()[1:6]
@@ -244,15 +262,51 @@ def plot_average_recall_curve(ave_recall, opt):
                 ave_recall_pointnetvlad = ave_recall_pointnetvlad + ave_recall_pointnetvlad_temp[i]
             ave_recall_pointnetvlad = np.array(ave_recall_pointnetvlad.split())
             ave_recall_pointnetvlad = np.asarray(ave_recall_pointnetvlad, dtype = float)
-        plt.plot(index, ave_recall_pointnetvlad, 'k--', label='PointNetVLAD')
+        plt.plot(index, ave_recall_pointnetvlad, 'k--', label='PointNetVLAD, average recall=%.2f' % (ave_one_percent_recall_pointnetvlad))
     except:
         print('no pointnetvlad')
+
+    try:
+        ave_one_percent_recall_scancontext = None
+        with open(os.path.join(opt.scancontext_result_folder, 'results.txt'), "r") as scancontext_result_folder:
+            ave_one_percent_recall_scancontext = float(scancontext_result_folder.readlines()[-1])
+            ave_recall_scancontext = ''
+        with open(os.path.join(opt.scancontext_result_folder, 'results.txt'), "r") as scancontext_result_file:
+            ave_recall_scancontext_temp = scancontext_result_file.readlines()[1:6]
+            for i in range(len(ave_recall_scancontext_temp)):
+                ave_recall_scancontext_temp[i] = ave_recall_scancontext_temp[i].replace('[', '')
+                ave_recall_scancontext_temp[i] = ave_recall_scancontext_temp[i].replace(']', '')
+                ave_recall_scancontext_temp[i] = ave_recall_scancontext_temp[i].replace('\n', '')
+                ave_recall_scancontext = ave_recall_scancontext + ave_recall_scancontext_temp[i]
+            ave_recall_scancontext = np.array(ave_recall_scancontext.split())
+            ave_recall_scancontext = np.asarray(ave_recall_scancontext, dtype = float)
+        plt.plot(index, ave_recall_scancontext, 'm-.', label='Scan Context, average recall=%.2f' % (ave_one_percent_recall_scancontext))
+    except:
+        print('no scan context')
+
+    try:
+        ave_one_percent_recall_m2dp = None
+        with open(os.path.join(opt.m2dp_result_folder, 'results.txt'), "r") as m2dp_result_folder:
+            ave_one_percent_recall_m2dp = float(m2dp_result_folder.readlines()[-1])
+            ave_recall_m2dp = ''
+        with open(os.path.join(opt.m2dp_result_folder, 'results.txt'), "r") as m2dp_result_file:
+            ave_recall_m2dp_temp = m2dp_result_file.readlines()[1:6]
+            for i in range(len(ave_recall_m2dp_temp)):
+                ave_recall_m2dp_temp[i] = ave_recall_m2dp_temp[i].replace('[', '')
+                ave_recall_m2dp_temp[i] = ave_recall_m2dp_temp[i].replace(']', '')
+                ave_recall_m2dp_temp[i] = ave_recall_m2dp_temp[i].replace('\n', '')
+                ave_recall_m2dp = ave_recall_m2dp + ave_recall_m2dp_temp[i]
+            ave_recall_m2dp = np.array(ave_recall_m2dp.split())
+            ave_recall_m2dp = np.asarray(ave_recall_m2dp, dtype = float)
+        plt.plot(index, ave_recall_m2dp, 'g:', label='M2DP, average recall=%.2f' % (ave_one_percent_recall_m2dp))
+    except:
+        print('no M2DP')
     
     plt.title("Average recall @N Curve")
     plt.xlabel('in top N')
-    plt.ylabel('Average recall @N [%]')
-    # plt.xlim(-1,26)
-    # plt.ylim(0,105)
+    plt.ylabel('Average recall @N')
+    plt.xlim(-1,26)
+    plt.ylim(0,1.1)
     plt.legend()
     plt.tight_layout()
     plt.savefig(os.path.join(opt.result_folder, "average_recall_curve.png"))
@@ -260,75 +314,79 @@ def plot_average_recall_curve(ave_recall, opt):
 
 
 def get_precision_recall_curve(QUERY_SETS, QUERY_VECTORS, DATABASE_VECTORS, opt, ave_one_percent_recall):
-    y_true = []
-    y_predicted = []
+    try:
+        precision = np.load(os.path.join(opt.result_folder, 'precision.npy'))
+        recall = np.load(os.path.join(opt.result_folder, 'recall.npy'))
+    except:
+        y_true = []
+        y_predicted = []
 
-    for q in range(len(QUERY_SETS)):
-        for d in range(len(QUERY_SETS)):
-            if (q==d):
-                continue
-
-            database_nbrs = KDTree(DATABASE_VECTORS[d])
-
-            for i in range(len(QUERY_SETS[q])):
-                true_neighbors = QUERY_SETS[q][i][d]
-                if(len(true_neighbors)==0):
+        for q in range(len(QUERY_SETS)):
+            for d in range(len(QUERY_SETS)):
+                if (q==d):
                     continue
-                distances, indices = database_nbrs.query(np.array([QUERY_VECTORS[q][i]]))
-                current_y_true = 0
-                current_y_predicted = 0
-                for j in range(len(indices[0])):
-                    if indices[0][j] in true_neighbors:
-                        # predicted neighbor is correct
-                        current_y_true = 1
-                    current_y_predicted_temp = np.dot(QUERY_VECTORS[q][i], DATABASE_VECTORS[d][indices[0][j]]) / \
-                                                    (np.linalg.norm(QUERY_VECTORS[q][i]) * np.linalg.norm(DATABASE_VECTORS[d][indices[0][j]]))
-                    # take prediction similarity that is the highest amoung neighbors
-                    if current_y_predicted_temp > current_y_predicted:
-                        current_y_predicted = current_y_predicted_temp
-                # loop or not
-                y_true.append(current_y_true)
 
-                # similarity
-                y_predicted.append(current_y_predicted)
-    
-    np.set_printoptions(threshold=sys.maxsize)
-    # print('y_true', y_true)
-    # print('y_predicted', y_predicted)
+                database_nbrs = KDTree(DATABASE_VECTORS[d])
 
-    precision, recall, thresholds = precision_recall_curve(y_true, y_predicted)
+                for i in range(len(QUERY_SETS[q])):
+                    true_neighbors = QUERY_SETS[q][i][d]
+                    if(len(true_neighbors)==0):
+                        continue
+                    distances, indices = database_nbrs.query(np.array([QUERY_VECTORS[q][i]]))
+                    current_y_true = 0
+                    current_y_predicted = 0
+                    for j in range(len(indices[0])):
+                        if indices[0][j] in true_neighbors:
+                            # predicted neighbor is correct
+                            current_y_true = 1
+                        current_y_predicted_temp = np.dot(QUERY_VECTORS[q][i], DATABASE_VECTORS[d][indices[0][j]]) / \
+                                                        (np.linalg.norm(QUERY_VECTORS[q][i]) * np.linalg.norm(DATABASE_VECTORS[d][indices[0][j]]))
+                        # take prediction similarity that is the highest amoung neighbors
+                        if current_y_predicted_temp > current_y_predicted:
+                            current_y_predicted = current_y_predicted_temp
+                    # loop or not
+                    y_true.append(current_y_true)
 
-    # print('precision', precision)
-    # print('recall', recall)
-    # print('thresholds', thresholds)
-    np.set_printoptions(threshold=1000)
+                    # similarity
+                    y_predicted.append(current_y_predicted)
+        
+        np.set_printoptions(threshold=sys.maxsize)
+        # print('y_true', y_true)
+        # print('y_predicted', y_predicted)
 
-    np.save(os.path.join(opt.result_folder, 'precision.npy'), np.array(precision))
-    np.save(os.path.join(opt.result_folder, 'recall.npy'), np.array(recall))
+        precision, recall, thresholds = precision_recall_curve(y_true, y_predicted)
+
+        # print('precision', precision)
+        # print('recall', recall)
+        # print('thresholds', thresholds)
+        np.set_printoptions(threshold=1000)
+
+        np.save(os.path.join(opt.result_folder, 'precision.npy'), np.array(precision))
+        np.save(os.path.join(opt.result_folder, 'recall.npy'), np.array(recall))
 
     # Plot Precision-recall curve
     plt.figure()
     if opt.model.model=='pointnetvlad_epnnetvlad':
-        plt.plot(recall*100, precision*100, label='PointNetVLAD + EPNNetVLAD')    
+        plt.plot(recall, precision, label='PointNetVLAD + EPNNetVLAD')    
     elif opt_oxford.model.model == 'pointnetepn_netvlad':
-        plt.plot(recall*100, precision*100, label='PointNetEPN-NetVLAD')     
+        plt.plot(recall, precision, label='PointNetEPN-NetVLAD')     
     elif opt_oxford.model.model == 'epn_gcn_netvlad':
         if opt.model.kpconv:
-            plt.plot(recall*100, precision*100, label='KPConv-GCN-NetVLAD, average recall=%.2f' % (ave_one_percent_recall))
+            plt.plot(recall, precision, label='KPConv-GCN-NetVLAD')
         else:
-            plt.plot(recall*100, precision*100, label='EPN-GCN-NetVLAD, average recall=%.2f' % (ave_one_percent_recall))    
-    elif opt_oxford.model.model == 'epn_ca_netvlad':
+            plt.plot(recall, precision, label='EPN-GCN-NetVLAD')    
+    elif opt_oxford.model.model == 'epn_ca_netvlad' or opt_oxford.model.model == 'epn_ca_netvlad_select':
         if opt.model.kpconv:
-            plt.plot(recall*100, precision*100, label='KPConv-CA-NetVLAD, average recall=%.2f' % (ave_one_percent_recall))
+            plt.plot(recall, precision, label='KPConv-CA-NetVLAD')
         else:
-            plt.plot(recall*100, precision*100, label='EPN-CA-NetVLAD, average recall=%.2f' % (ave_one_percent_recall)) 
+            plt.plot(recall, precision, label='EPN-CA-NetVLAD') 
     elif opt_oxford.model.model == 'epn_transformer_netvlad':
-        plt.plot(recall*100, precision*100, label='EPN-Transformer-NetVLAD, average recall=%.2f' % (ave_one_percent_recall))   
+        plt.plot(recall, precision, label='EPN-Transformer-NetVLAD')   
     else:
         if opt.model.kpconv:
-            plt.plot(recall*100, precision*100, label='KPConv-NetVLAD, average recall=%.2f' % (ave_one_percent_recall))
+            plt.plot(recall, precision, label='KPConv-NetVLAD')
         else:
-            plt.plot(recall*100, precision*100, label='EPN-NetVLAD, average recall=%.2f' % (ave_one_percent_recall))
+            plt.plot(recall, precision, label='EPN-NetVLAD')
             # pass
     
     # plot baselines
@@ -341,43 +399,87 @@ def get_precision_recall_curve(QUERY_SETS, QUERY_VECTORS, DATABASE_VECTORS, opt,
                 precision_baseline = np.load(os.path.join(baseline_folder, 'precision.npy'))
                 recall_baseline = np.load(os.path.join(baseline_folder, 'recall.npy'))
                 if baseline_folder[-2] == '0':
-                    plt.plot(recall_baseline*100, precision_baseline*100, label='EPN-NetVLAD, radius=0.'+baseline_folder[-1]+'0, average recall=%.2f' % (ave_one_percent_recall_baseline))
+                    plt.plot(recall_baseline, precision_baseline, label='EPN-NetVLAD, radius=0.'+baseline_folder[-1]+'0, average recall=%.2f' % (ave_one_percent_recall_baseline))
                 elif baseline_folder[-3] == '0':
-                    plt.plot(recall_baseline*100, precision_baseline*100, label='EPN-NetVLAD, radius=0.'+baseline_folder[-2:]+', average recall=%.2f' % (ave_one_percent_recall_baseline))
+                    plt.plot(recall_baseline, precision_baseline, label='EPN-NetVLAD, radius=0.'+baseline_folder[-2:]+', average recall=%.2f' % (ave_one_percent_recall_baseline))
     
     except:
         print('no baseline')
     
     try:
-        ave_one_percent_recall_pointnetvlad = None
-        with open(os.path.join(opt.pointnetvlad_result_folder, 'results.txt'), "r") as pointnetvlad_result_file:
-            ave_one_percent_recall_pointnetvlad = float(pointnetvlad_result_file.readlines()[-1])
         precision_pointnetvlad = np.load(os.path.join(opt.pointnetvlad_result_folder, 'precision.npy'))
         recall_pointnetvlad = np.load(os.path.join(opt.pointnetvlad_result_folder, 'recall.npy'))
-        plt.plot(recall_pointnetvlad*100, precision_pointnetvlad*100, 'k--', label='PointNetVLAD, average recall=%.2f' % (ave_one_percent_recall_pointnetvlad))
-        # plt.plot(recall_pointnetvlad*100, precision_pointnetvlad*100, label='PointNetVLAD, average recall=84.93')
+        plt.plot(recall_pointnetvlad, precision_pointnetvlad, 'k--', label='PointNetVLAD')
     except:
         print('no pointnetvlad')
-    # try:
-    #     ave_one_percent_recall_dgcnnnetvlad = None
-    #     with open(os.path.join(opt.dgcnnnetvlad_result_folder, 'results.txt'), "r") as dgcnnnetvlad_result_file:
-    #         ave_one_percent_recall_dgcnnnetvlad = float(dgcnnnetvlad_result_file.readlines()[-1])
-    #     precision_dgcnnnetvlad = np.load(os.path.join(opt.dgcnnnetvlad_result_folder, 'precision.npy'))
-    #     recall_dgcnnnetvlad = np.load(os.path.join(opt.dgcnnnetvlad_result_folder, 'recall.npy'))
-    #     plt.plot(recall_dgcnnnetvlad*100, precision_dgcnnnetvlad*100, label='DGCNN-NetVLAD, average recall=%.2f' % (ave_one_percent_recall_dgcnnnetvlad))
-    #     # plt.plot(recall_dgcnnnetvlad*100, precision_dgcnnnetvlad*100, label='DGCNN-NetVLAD, average recall=85.17')
-    # except:
-    #     print('no dgcnn-netvlad')
+    try:
+        precision_scancontext = np.load(os.path.join(opt.scancontext_result_folder, 'precision.npy'))
+        recall_scancontext = np.load(os.path.join(opt.scancontext_result_folder, 'recall.npy'))
+        plt.plot(recall_scancontext, precision_scancontext, 'm-.', label='Scan Context')
+    except:
+        print('no scan context')
+    try:
+        precision_m2dp = np.load(os.path.join(opt.m2dp_result_folder, 'precision.npy'))
+        recall_m2dp = np.load(os.path.join(opt.m2dp_result_folder, 'recall.npy'))
+        plt.plot(recall_m2dp, precision_m2dp, 'g:', label='M2DP')
+    except:
+        print('no M2DP')
+        
     
     plt.title("Precision-recall Curve")
-    plt.xlabel('Recall [%]')
-    plt.ylabel('Precision [%]')
-    plt.xlim(0,105)
-    plt.ylim(0,105)
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.xlim(0,1.1)
+    plt.ylim(0,1.1)
     plt.legend()
     plt.tight_layout()
     plt.savefig(os.path.join(opt.result_folder, "precision_recall_oxford.png"))
     print('Precision-recall curve is saved at:', os.path.join(opt.result_folder, "precision_recall_oxford.png"))
+
+
+def get_f1_recall_curve(opt):
+    precision = np.load(os.path.join(opt.result_folder, 'precision.npy'))
+    recall = np.load(os.path.join(opt.result_folder, 'recall.npy'))
+    f1 = 2 * precision * recall / (precision + recall)
+    np.save(os.path.join(opt.result_folder, 'f1.npy'), np.array(f1))
+
+    # Plot F1-recall curve
+    plt.figure()
+    if opt_oxford.model.model == 'epn_ca_netvlad' or opt_oxford.model.model == 'epn_ca_netvlad_select':
+        plt.plot(recall, f1, label='EPN-CA-NetVLAD')
+    else:
+        plt.plot(recall, f1, label='EPN-NetVLAD')
+
+    try:
+        f1_pointnetvlad = np.load(os.path.join(opt.pointnetvlad_result_folder, 'f1.npy'))
+        recall_pointnetvlad = np.load(os.path.join(opt.pointnetvlad_result_folder, 'recall.npy'))
+        plt.plot(recall_pointnetvlad, f1_pointnetvlad, 'k--', label='PointNetVLAD')
+    except:
+        print('no pointnetvlad')
+
+    try:
+        f1_scancontext = np.load(os.path.join(opt.scancontext_result_folder, 'f1.npy'))
+        recall_scancontext = np.load(os.path.join(opt.scancontext_result_folder, 'recall.npy'))
+        plt.plot(recall_scancontext, f1_scancontext, 'm-.', label='Scan Context')
+    except:
+        print('no scan context')
+
+    try:
+        f1_m2dp = np.load(os.path.join(opt.m2dp_result_folder, 'f1.npy'))
+        recall_m2dp = np.load(os.path.join(opt.m2dp_result_folder, 'recall.npy'))
+        plt.plot(recall_m2dp, f1_m2dp, 'g:', label='M2DP')
+    except:
+        print('no M2DP')
+
+    plt.title("F1-recall Curve")
+    plt.xlabel('Recall')
+    plt.ylabel('F1 Score')
+    plt.xlim(0,1.1)
+    plt.ylim(0,1.1)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(opt.result_folder, "f1_recall_oxford.png"))
+    print('F1-recall curve is saved at:', os.path.join(opt.result_folder, "f1_recall_oxford.png"))
 
 
 def get_latent_vectors(model, dict_to_process, opt):
@@ -389,7 +491,7 @@ def get_latent_vectors(model, dict_to_process, opt):
     batch_num = opt.batch_size * \
         (1 + opt.pos_per_query + opt.neg_per_query)
     q_output = []
-    for q_index in tqdm(range(len(eval_file_idxs)//batch_num)):
+    for q_index in range(len(eval_file_idxs)//batch_num):
         file_indices = eval_file_idxs[q_index *
                                        batch_num:(q_index+1)*(batch_num)]
         file_names = []
@@ -478,8 +580,8 @@ def get_recall(m, n, DATABASE_VECTORS, QUERY_VECTORS, QUERY_SETS):
         if len(list(set(indices[0][0:threshold]).intersection(set(true_neighbors)))) > 0:
             one_percent_retrieved += 1
 
-    one_percent_recall = (one_percent_retrieved/float(num_evaluated))*100
-    recall = (np.cumsum(recall)/float(num_evaluated))*100
+    one_percent_recall = (one_percent_retrieved/float(num_evaluated))
+    recall = (np.cumsum(recall)/float(num_evaluated))
     # print(recall)
     # print(np.mean(top1_similarity_score))
     # print(one_percent_recall)

@@ -152,10 +152,18 @@ def main():
     elif cfg.MODEL == 'ca_epn_netvlad_select':
         from SPConvNets.models.epn_gcn_netvlad import CA_EPN_NetVLAD_select
         model = CA_EPN_NetVLAD_select(opt_oxford)
-        model = EPNConvCANetVLAD(opt_oxford)
     elif cfg.MODEL == 'kpconv_netvlad':
         from SPConvNets.models.kpconv_netvlad import KPConvNetVLAD
         model = KPConvNetVLAD(opt_oxford)
+    elif cfg.MODEL == 'epn_atten_netvlad':
+        from SPConvNets.models.epn_gcn_netvlad import EPN_Atten_NetVLAD
+        model = EPN_Atten_NetVLAD(opt_oxford)
+    elif cfg.MODEL == 'atten_epn_netvlad':
+        from SPConvNets.models.epn_gcn_netvlad import Atten_EPN_NetVLAD
+        model = Atten_EPN_NetVLAD(opt_oxford)
+    elif cfg.MODEL == 'atten_epn_netvlad_select':
+        from SPConvNets.models.epn_gcn_netvlad import Atten_EPN_NetVLAD_select
+        model = Atten_EPN_NetVLAD_select(opt_oxford)
         
     model = model.to(device)
     parameters = filter(lambda p: p.requires_grad, model.parameters())

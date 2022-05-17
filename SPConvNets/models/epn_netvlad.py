@@ -24,10 +24,11 @@ class EPNNetVLAD(nn.Module):
         self.opt = opt
         
         # epn param
-        mlps=[[128]]
-        out_mlps=[128, self.opt.model.output_num]
-        strides=[1, 1]
+        mlps=[[64]]
+        out_mlps=[64, self.opt.model.output_num]
+        strides=[1, 1, 1]
         self.epn = frontend.build_model(self.opt, mlps, out_mlps, strides, downsample=False, outblock='linear')
+        # self.epn = frontend.build_model(self.opt, mlps, out_mlps, strides, downsample=False)
         print('EPN', self.epn)
         
         self.netvlad = M.NetVLADLoupe(feature_size=self.opt.model.output_num, max_samples=self.opt.num_selected_points, cluster_size=64,

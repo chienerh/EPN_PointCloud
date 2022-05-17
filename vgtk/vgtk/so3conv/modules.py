@@ -268,5 +268,4 @@ class PointnetSO3Conv_nomax(nn.Module):
             feats = torch.cat([x.feats, xyzr],1)
 
         feats = self.embed(feats)
-        # feats = torch.max(feats,2)[0]
         return feats # nb, nc, na
