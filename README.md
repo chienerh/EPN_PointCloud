@@ -1,5 +1,5 @@
 # EPN-NetVLAD
-This repository utilize Equivariant Point Network (EPN) repository [EPN_PointCloud](https://github.com/nintendops/EPN_PointCloud) to perform place recogntion task.
+This repository utilizes Equivariant Point Network (EPN) repository [EPN_PointCloud](https://github.com/nintendops/EPN_PointCloud) to perform place recogntion task.
 
 
 ## Set Up
