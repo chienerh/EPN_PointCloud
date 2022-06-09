@@ -1,7 +1,7 @@
 # GLOBAL
-EXP_NAME = 'atten_epn_netvlad_select_seq567_64_1024_ds2048'
+EXP_NAME = 'atten_ds2048_epn_32_64_netvlad_1024_trainall'
 MODEL = 'atten_epn_netvlad_select'
-# testing: 'epn_netvlad', 'epn_atten_netvlad', 'atten_epn_netvlad'
+# testing: 'epn_netvlad', 'epn_atten_netvlad', 'atten_epn_netvlad', 'atten_epn_netvlad_select'
 # archived: 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad' 
 
 # DATA LOADER
@@ -46,18 +46,12 @@ BN_INIT_DECAY = 0.5
 BN_DECAY_DECAY_RATE = 0.5
 BN_DECAY_CLIP = 0.99
 
-RESUME = False
+RESUME = True
 
-# TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_baseline.pickle'
-# TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_baseline.pickle'
-TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_baseline_seq567.pickle'
-TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_baseline_seq567.pickle'
-# TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_1024_seq567.pickle'
-# TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_1024_seq567.pickle'
-# TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_19overlap_seq5.pickle'
-# TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_19overlap_seq5.pickle'
-# TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_part.pickle'
-# TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_part.pickle'
+TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_baseline.pickle'
+TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_baseline.pickle'
+# TRAIN_FILE = '/home/cel/data/benchmark_datasets/training_queries_baseline_seq567.pickle'
+# TEST_FILE = '/home/cel/data/benchmark_datasets/test_queries_baseline_seq567.pickle'
 
 EVAL_MODEL = 'vn_dgcnn_netvlad'
 RESULTS_FOLDER = 'results/pr_evaluation_vn_dgcnn_netvlad'

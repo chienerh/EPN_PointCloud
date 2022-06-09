@@ -50,7 +50,7 @@ def load_pc_files(filenames, opt):
 def evaluate():
     opt_oxford.batch_size = 1
     opt_oxford.no_augmentation = True # TODO
-    opt_oxford.model.model = 'atten_epn_netvlad_select' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
+    opt_oxford.model.model = 'epn_netvlad' #'atten_epn_netvlad_select' # 'epn_ca_netvlad_select', 'epn_ca_netvlad', 'epn_netvlad' , 'pointnetepn_netvlad', 'pointnetvlad_epnnetvlad'
     opt_oxford.device = torch.device('cuda')
 
     # IO
@@ -72,8 +72,8 @@ def evaluate():
     # pretrained weight
     # opt_oxford.resume_path = 'pretrained_model/epn_transformer_conv_netvlad_seq567.ckpt'
     # opt_oxford.result_folder = 'results/pr_evaluation_epn_transformer_conv_netvlad_seq567'
-    opt_oxford.resume_path = 'pretrained_model/atten_epn_netvlad_select_seq567_128_1024_ds3000.ckpt'
-    opt_oxford.result_folder = 'results/pr_evaluation_atten_epn_netvlad_select_seq567_128_1024_ds3000_evalall'
+    opt_oxford.resume_path = 'pretrained_model/epn_netvlad_seq567_random_ds1600.ckpt'
+    opt_oxford.result_folder = 'results/pr_evaluation_epn_netvlad_seq567_random_ds1600_evalall'
 
     """evaluation"""
     '''rotation vs. translation vs. partial overlap'''

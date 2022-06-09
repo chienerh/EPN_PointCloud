@@ -197,9 +197,9 @@ class Atten_EPN_NetVLAD(nn.Module):
         super(Atten_EPN_NetVLAD, self).__init__()
         self.opt = opt
         # epn param
-        mlps=[[64]]
-        out_mlps=[64, self.opt.model.output_num]
-        strides=[1,1]
+        mlps=[[32], [32]]
+        out_mlps=[32, self.opt.model.output_num]
+        strides=[1, 1, 1]
 
         self.atten = torch.nn.MultiheadAttention(3, 3)
         
@@ -229,9 +229,9 @@ class Atten_EPN_NetVLAD_select(nn.Module):
         super(Atten_EPN_NetVLAD_select, self).__init__()
         self.opt = opt
         # epn param
-        mlps=[[64]]
+        mlps=[[32], [64]]
         out_mlps=[64, self.opt.model.output_num]
-        strides=[1, 1]
+        strides=[1, 1, 1]
 
         self.atten = torch.nn.MultiheadAttention(3, 3, batch_first=True)
         

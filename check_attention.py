@@ -86,7 +86,7 @@ def visualize_attention():
     opt_oxford.neg_per_query = 1
 
     # pretrained weight
-    opt_oxford.resume_path = 'pretrained_model/atten_epn_netvlad_select_seq567_128_1024_ds3000.ckpt'
+    opt_oxford.resume_path = 'pretrained_model/atten_epn_netvlad_select_seq567_64_1024_ds1024.ckpt'
     
     # input file
     input_folder = 'results/test_network_output/'
@@ -123,16 +123,17 @@ def visualize_attention():
     print('cut off attention weight: ', cut_off_atten_thres)
     view_angle = 45
 
-    # visualize input point clouds
-    fig = plt.figure()
-    ax = plt.axes(projection ="3d")
-    ax.scatter(input_pointcloud[:, 0], input_pointcloud[:, 1], input_pointcloud[:, 2], marker='.', c='C0', s=5, label='input point cloud')
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    ax.view_init(20, view_angle)
-    ax.set_title('input point cloud')
-    plt.savefig(os.path.join(input_folder, '0_intput_point_cloud.png'))
+    # # visualize input point clouds
+
+    # fig = plt.figure()
+    # ax = plt.axes(projection ="3d")
+    # ax.scatter(input_pointcloud[:, 0], input_pointcloud[:, 1], input_pointcloud[:, 2], marker='.', c='C0', s=5, label='input point cloud')
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    # ax.set_zlabel('z')
+    # ax.view_init(20, view_angle)
+    # ax.set_title('input point cloud')
+    # plt.savefig(os.path.join(input_folder, '0_intput_point_cloud.png'))
 
     
     fig = plt.figure()
@@ -144,7 +145,7 @@ def visualize_attention():
     ax.view_init(20, view_angle)
     ax.set_title('attention weight')
     plt.colorbar(scatter_plot)
-    plt.savefig(os.path.join(input_folder, '0_self_attention_weight.png'))
+    plt.savefig(os.path.join(input_folder, '0_self_attention_weight_ds1024.png'))
 
 
     fig = plt.figure()
@@ -156,17 +157,17 @@ def visualize_attention():
     ax.view_init(20, view_angle)
     ax.set_title('downsample hightlight (1 for dropping, 0 for keeping)')
     plt.colorbar(scatter_plot)
-    plt.savefig(os.path.join(input_folder, '0_downsample_highlight.png'))
+    plt.savefig(os.path.join(input_folder, '0_downsample_highlight_1024.png'))
     
-    fig = plt.figure()
-    ax = plt.axes(projection ="3d")
-    ax.scatter(downsampled_pcd[:, 0], downsampled_pcd[:, 1], downsampled_pcd[:, 2], marker='.', c='C0', s=5, label='downsampled point cloud')
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-    ax.view_init(20, view_angle)
-    ax.set_title('downsampled point cloud')
-    plt.savefig(os.path.join(input_folder, '0_downsampled_point_cloud.png'))
+    # fig = plt.figure()
+    # ax = plt.axes(projection ="3d")
+    # ax.scatter(downsampled_pcd[:, 0], downsampled_pcd[:, 1], downsampled_pcd[:, 2], marker='.', c='C0', s=5, label='downsampled point cloud')
+    # ax.set_xlabel('x')
+    # ax.set_ylabel('y')
+    # ax.set_zlabel('z')
+    # ax.view_init(20, view_angle)
+    # ax.set_title('downsampled point cloud')
+    # plt.savefig(os.path.join(input_folder, '0_downsampled_point_cloud.png'))
 
 
 if __name__ == "__main__":
